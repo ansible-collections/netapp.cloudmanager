@@ -34,7 +34,7 @@ jobs:
         run: |
           pwd
           mkdir -p ansible_collections/netapp/cloudmanager/
-          cp -a . ansible_collections/netapp/cloudmanager/.
+          rsync -av . ansible_collections/netapp/cloudmanager/ --exclude ansible_collections/netapp/cloudmanager/
 
 
       - name: Run sanity tests Cloudmanager
