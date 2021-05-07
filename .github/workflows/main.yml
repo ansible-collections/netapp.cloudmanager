@@ -32,4 +32,3 @@ jobs:
 
       - name: Run sanity tests Cloudmanager
         run: ansible-test sanity --docker -v --color
-        working-directory: ./
