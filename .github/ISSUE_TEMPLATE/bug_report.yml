@@ -114,36 +114,24 @@ body:
         libyaml = True
   validations:
     required: true
-
+    
 - type: textarea
   attributes:
-    label: Configuration
+    label: Cloud Manager Version
     description: >-
-      Paste verbatim output from `ansible-config dump --only-changed`
-      below, under the prompt line.
-      Please don't wrap it with tripple backticks — your
-      whole input will be turned into a code snippet automatically.
+      Cloud Manager Version
     render: console
-    value: |
-      $ ansible-config dump --only-changed
-    placeholder: |
-      $ ansible-config dump --only-changed
-      DEFAULT_GATHERING(~/src/github/ansible/ansible/ansible.cfg) = smart
-      DEFAULT_HOST_LIST(~/src/github/ansible/ansible/ansible.cfg) = ['~/src/github/ansible/ansible/hosts']
-      DEFAULT_VAULT_PASSWORD_FILE(~/src/github/ansible/ansible/ansible.cfg) = ~/src/github/ansible/ansible/vault/print-password.sh
   validations:
     required: true
-
+    
 - type: textarea
   attributes:
-    label: OS / Environment
+    label: Playbook
     description: >-
-      Provide all relevant information below, e.g. target OS versions,
-      network device firmware, etc.
-    placeholder: RHEL 8, CentOS Stream etc.
+      The play from the playbook that is give you the issue
+    render: console
   validations:
     required: true
-
 
 - type: textarea
   attributes:
