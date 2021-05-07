@@ -29,6 +29,11 @@ jobs:
 
       - name: Install ansible (${{ matrix.ansible }})
         run: pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
+      
+      - name: Make directory to make ansible-test happy
+        run: cp -af . ansible_collections/netapp/cloudmanager/
+
 
       - name: Run sanity tests Cloudmanager
         run: ansible-test sanity --docker -v --color
+        working-directory: /home/runner/work/netapp.cloudmanager/netapp.cloudmanager/ansible_collections/netapp/cloudmanager/
