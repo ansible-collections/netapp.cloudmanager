@@ -74,13 +74,6 @@ body:
       *use your best guess if unsure*.
 
 
-      Be aware that a lot of content that used to reside in this repository
-      previously, is now hosted under [individual collection
-      projects][collections org].
-      If this is the case, please make sure to file an issue under the
-      appropriate project there instead.
-
-
       [collections org]: /ansible-collections
     placeholder: dnf, apt, yum, pip, user etc.
   validations:
