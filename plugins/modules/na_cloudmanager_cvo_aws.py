@@ -113,7 +113,7 @@ options:
   ebs_volume_type:
     description:
     - The EBS volume type for the first data aggregate.
-    choices: ['gp2', 'io1', 'sc1', 'st1']
+    choices: ['gp3', 'gp2', 'io1', 'sc1', 'st1']
     default: 'gp2'
     type: str
 
@@ -171,7 +171,13 @@ options:
 
   iops:
     description:
-    - Provisioned IOPS. Required only when provider_volume_type is 'io1'.
+    - Provisioned IOPS. Required only when provider_volume_type is 'io1' or 'gp3'.
+    type: int
+
+  throughput:
+    description:
+    - Unit is Mb/s. Valid range 125-1000.
+    - Required only when provider_volume_type is 'gp3'.
     type: int
 
   capacity_tier:
@@ -421,7 +427,7 @@ class NetAppCloudManagerCVOAWS:
             data_encryption_type=dict(required=False, type='str', choices=['AWS', 'NONE'], default='AWS'),
             ebs_volume_size=dict(required=False, type='int', default='1'),
             ebs_volume_size_unit=dict(required=False, type='str', choices=['GB', 'TB'], default='TB'),
-            ebs_volume_type=dict(required=False, type='str', choices=['gp2', 'io1', 'sc1', 'st1'], default='gp2'),
+            ebs_volume_type=dict(required=False, type='str', choices=['gp3', 'gp2', 'io1', 'sc1', 'st1'], default='gp2'),
             svm_password=dict(required=True, type='str', no_log=True),
             ontap_version=dict(required=False, type='str', default='latest'),
             use_latest_version=dict(required=False, type='bool', default=True),
@@ -430,6 +436,7 @@ class NetAppCloudManagerCVOAWS:
             nss_account=dict(required=False, type='str'),
             writing_speed_state=dict(required=False, type='str'),
             iops=dict(required=False, type='int'),
+            throughput=dict(required=False, type='int'),
             capacity_tier=dict(required=False, type='str', choices=['S3', 'NONE'], default='S3'),
             instance_tenancy=dict(required=False, type='str', choices=['default', 'dedicated'], default='default'),
             instance_profile_name=dict(required=False, type='str'),
@@ -463,7 +470,12 @@ class NetAppCloudManagerCVOAWS:
 
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
-            supports_check_mode=True
+            required_if=[
+                ['ebs_volume_type', 'gp3', ['iops', 'throughput']],
+                ['ebs_volume_type', 'io1', ['iops']],
+                ['license_type', 'cot-premium-byol', ['platform_serial_number']],
+            ],
+            supports_check_mode=True,
         )
 
         if HAS_AWS_LIB is False:
@@ -598,6 +610,9 @@ class NetAppCloudManagerCVOAWS:
         if self.parameters.get('iops') is not None:
             json.update({"iops": self.parameters['iops']})
 
+        if self.parameters.get('throughput') is not None:
+            json.update({"throughput": self.parameters['throughput']})
+
         if self.parameters.get('instance_tenancy') is not None:
             json.update({"instanceTenancy": self.parameters['instance_tenancy']})
 
@@ -716,13 +731,6 @@ class NetAppCloudManagerCVOAWS:
     def validate_cvo_params(self):
         if self.parameters['use_latest_version'] is True and self.parameters['ontap_version'] != "latest":
             self.module.fail_json(msg="ontap_version parameter not required when having use_latest_version as true")
-
-        if self.parameters.get('platform_serial_number') is not None and self.parameters['license_type'] != "cot-premium-byol":
-            self.module.fail_json(msg="platform_serial_number parameter required only when having license_type as cot-premium-byol")
-
-        if (self.parameters.get('iops') is None and self.parameters['ebs_volume_type'] == "io1")\
-                or (self.parameters.get('iops') is not None and self.parameters['ebs_volume_type'] != "io1"):
-            self.module.fail_json(msg="iops parameter required when having ebs_volume_type as io1")
 
         if self.parameters['is_ha'] is True and self.parameters['license_type'] == "ha-cot-premium-byol":
             if self.parameters.get('platform_serial_number_node1') is None or self.parameters.get('platform_serial_number_node2') is None:

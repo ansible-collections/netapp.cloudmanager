@@ -9,7 +9,7 @@ namespace: netapp
 name: cloudmanager
 
 # The version of the collection. Must be compatible with semantic versioning
-version: "21.6.0"
+version: "21.7.0"
 
 # The path to the Markdown (.md) readme file. This path is relative to the root of the collection
 readme: README.md
@@ -45,7 +45,7 @@ tags: [netapp, cvo, cloudmanager, amazon]
 dependencies: {}
 
 # The URL of the originating SCM repository
-repository: https://github.com/ansible-collections/netapp
+repository: https://github.com/ansible-collections/netapp.cloudmanager
 
 # The URL to any online docs
 documentation: https://docs.ansible.com/ansible/latest/collections/netapp/
@@ -54,4 +54,4 @@ documentation: https://docs.ansible.com/ansible/latest/collections/netapp/
 homepage: https://netapp.io/configuration-management-and-automation/
 
 # The URL to the collection issue tracker
-issues: https://github.com/ansible-collections/netapp
+issues: https://github.com/ansible-collections/netapp.cloudmanager

@@ -29,6 +29,11 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.7.0
+
+### New Options
+  - na_cloudmanager_cvo_aws: Support one new ebs_volume_type gp3
+
 ## 21.6.0
 
 ### New Modules
