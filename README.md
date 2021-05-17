@@ -33,6 +33,7 @@ https://github.com/ansible-collections/netapp/wiki
 
 ### New Options
   - na_cloudmanager_cvo_aws: Support one new ebs_volume_type gp3
+  - na_cloudmanager_connector_gcp: rename option `service_account_email` and `service_account_path` to `gcp_service_account_email` and `gcp_service_account_path` respectively
 
 ## 21.6.0
 

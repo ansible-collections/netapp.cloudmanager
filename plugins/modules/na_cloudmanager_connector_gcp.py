@@ -48,11 +48,13 @@ options:
     required: true
     type: str
 
-  service_account_email:
+  gcp_service_account_email:
     description:
     - The email of the service_account for the connector instance. This service account is used to allow the Connector to create Cloud Volume ONTAP.
     required: true
     type: str
+    aliases: ['service_account_email']
+    version_added: 21.7.0
 
   company:
     description:
@@ -60,11 +62,13 @@ options:
     required: true
     type: str
 
-  service_account_path:
+  gcp_service_account_path:
     description:
     - The local path of the service_account JSON file for GCP authorization purposes. This service account is used to create the Connector in GCP.
     required: true
     type: str
+    aliases: ['service_account_path']
+    version_added: 21.7.0
 
   subnet_id:
     description:
@@ -138,8 +142,8 @@ EXAMPLES = """
     project_id: xxxxxxx-support
     zone: us-east4-b
     company: NetApp
-    service_account_email: xxxxxxxx@xxxxxxx-support.iam.gserviceaccount.com
-    service_account_path: gcp_creds.json
+    gcp_service_account_email: xxxxxxxx@xxxxxxx-support.iam.gserviceaccount.com
+    gcp_service_account_path: gcp_creds.json
     proxy_user_name: test
     proxy_password: test
     proxy_url: http://abcdefg.com
@@ -157,8 +161,8 @@ EXAMPLES = """
     project_id: xxxxxxx-support
     zone: us-east4-b
     company: NetApp
-    service_account_email: xxxxxxxx@xxxxxxx-support.iam.gserviceaccount.com
-    service_account_path: gcp_creds.json
+    gcp_service_account_email: xxxxxxxx@xxxxxxx-support.iam.gserviceaccount.com
+    gcp_service_account_path: gcp_creds.json
     account_id: account-xxxxXXXX
 """
 
@@ -208,8 +212,8 @@ class NetAppCloudManagerConnectorGCP(object):
             project_id=dict(required=True, type='str'),
             zone=dict(required=True, type='str'),
             company=dict(required=True, type='str'),
-            service_account_email=dict(required=True, type='str'),
-            service_account_path=dict(required=True, type='str'),
+            gcp_service_account_email=dict(required=True, type='str', aliases=['service_account_email']),
+            gcp_service_account_path=dict(required=True, type='str', aliases=['service_account_path']),
             subnet_id=dict(required=False, type='str', default='default'),
             network_project_id=dict(required=False, type='str'),
             machine_type=dict(required=False, type='str', default='n1-standard-4'),
@@ -247,7 +251,7 @@ class NetAppCloudManagerConnectorGCP(object):
         get gcp token from gcp service account credential json file
         '''
         try:
-            fh = open(self.parameters['service_account_path'])
+            fh = open(self.parameters['gcp_service_account_path'])
         except (OSError, IOError) as error:
             return None, error
         with fh:
@@ -255,7 +259,7 @@ class NetAppCloudManagerConnectorGCP(object):
             if key_bytes is None:
                 return None, "Error: file is empty"
         credentials = service_account.Credentials.from_service_account_file(
-            self.parameters['service_account_path'],
+            self.parameters['gcp_service_account_path'],
             scopes=["https://www.googleapis.com/auth/cloud-platform",
                     "https://www.googleapis.com/auth/compute",
                     "https://www.googleapis.com/auth/compute.readonly",
@@ -379,7 +383,7 @@ class NetAppCloudManagerConnectorGCP(object):
                          'value': gcp_custom_data}
                     ]
                 },
-                'serviceAccounts': [{'email': self.parameters['service_account_email'],
+                'serviceAccounts': [{'email': self.parameters['gcp_service_account_email'],
                                      'scopes': gcp_sa_scopes, }],
                 'tags': tags,
                 'zone': self.parameters['zone']
