@@ -37,6 +37,7 @@ https://github.com/ansible-collections/netapp/wiki
 ### Bug Fixes
   - na_cloudmanager_cvo_gcp - Apply network_project_id on vpc1_cluster_connectivity, vpc2_ha_connectivity, vpc3_data_replication, subnet1_cluster_connectivity, subnet2_ha_connectivity, subnet3_data_replication
   - na_cloudmanager_connector_gcp: rename option `service_account_email` and `service_account_path` to `gcp_service_account_email` and `gcp_service_account_path` respectively
+  - na_cloudmanager_connector_azure: Fix KeyError client_id
 
 ## 21.6.0
 

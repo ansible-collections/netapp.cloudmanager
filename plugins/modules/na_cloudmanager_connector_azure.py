@@ -360,8 +360,7 @@ class NetAppCloudManagerConnectorAzure(object):
         time.sleep(120)
         retries = 30
         while retries > 0:
-            occm_resp, error = self.na_helper.check_occm_status(CLOUD_MANAGER_HOST, self.rest_api,
-                                                                self.parameters['client_id'])
+            occm_resp, error = self.na_helper.check_occm_status(CLOUD_MANAGER_HOST, self.rest_api, client_id)
             if error is not None:
                 self.module.fail_json(
                     msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
