@@ -51,11 +51,16 @@ options:
     - The resource group in Azure where the resources will be created.
     type: str
 
-  subnet_id:
+  subnet_name:
     required: true
     description:
     - The name of the subnet for the virtual machine.
+    - For example, in /subscriptions/xxx/resourceGroups/xxx/providers/Microsoft.Network/virtualNetworks/xxx/subnets/default,
+      only default is needed.
+    aliases:
+    - subnet_id
     type: str
+    version_added: '21.7.0'
 
   location:
     required: true
@@ -80,11 +85,16 @@ options:
     - The name of the company of the user.
     type: str
 
-  vnet_id:
+  vnet_name:
     required: true
     description:
     - The name of the virtual network.
+    - for example, in /subscriptions/xxx/resourceGroups/xxx/providers/Microsoft.Network/virtualNetworks/default,
+      only default is needed.
+    aliases:
+    - vnet_id
     type: str
+    version_added: '21.7.0'
 
   vnet_resource_group:
     description:
@@ -159,8 +169,8 @@ EXAMPLES = """
     name: bsuhas_ansible_occm
     location: westus
     resource_group: occm_group_westus
-    subnet_id: subnetxxxxx
-    vnet_id: Vnetxxxxx
+    subnet_name: subnetxxxxx
+    vnet_name: Vnetxxxxx
     subscription_id: "{{ xxxxxxxxxxxxxxxxx }}"
     account_id: "{{ account-xxxxxxx }}"
     company: NetApp
@@ -179,11 +189,11 @@ EXAMPLES = """
     location: westus
     resource_group: occm_group_westus
     network_security_group_name: OCCM_SG
-    subnet_id: subnetxxxxx
+    subnet_name: subnetxxxxx
     company: NetApp
     admin_password: Netapp123456
     admin_username: bsuhas
-    vnet_id: Vnetxxxxx
+    vnet_name: Vnetxxxxx
     subscription_id: "{{ xxxxxxxxxxxxxxxxx }}"
     account_id: "{{ account-xxxxxxx }}"
     refresh_token: "{{ xxxxxxxxxxxxxxx }}"
@@ -240,8 +250,8 @@ class NetAppCloudManagerConnectorAzure(object):
             virtual_machine_size=dict(required=False, type='str', default='Standard_D2s_v3'),
             resource_group=dict(required=True, type='str'),
             subscription_id=dict(required=True, type='str'),
-            subnet_id=dict(required=True, type='str'),
-            vnet_id=dict(required=True, type='str'),
+            subnet_name=dict(required=True, type='str', aliases=['subnet_id']),
+            vnet_name=dict(required=True, type='str', aliases=['vnet_id']),
             vnet_resource_group=dict(required=False, type='str'),
             location=dict(required=True, type='str'),
             network_security_resource_group=dict(required=False, type='str'),
@@ -316,12 +326,12 @@ class NetAppCloudManagerConnectorAzure(object):
         params['virtualMachineName']['value'] = self.parameters['name']
         if self.parameters.get('vnet_resource_group') is not None:
             network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
-                self.parameters['subscription_id'], self.parameters['vnet_resource_group'], self.parameters['vnet_id'])
+                self.parameters['subscription_id'], self.parameters['vnet_resource_group'], self.parameters['vnet_name'])
         else:
             network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
-                self.parameters['subscription_id'], self.parameters['resource_group'], self.parameters['vnet_id'])
+                self.parameters['subscription_id'], self.parameters['resource_group'], self.parameters['vnet_name'])
 
-        subnet = '%s/subnets/%s' % (network, self.parameters['subnet_id'])
+        subnet = '%s/subnets/%s' % (network, self.parameters['subnet_name'])
 
         if self.parameters.get('network_security_resource_group') is not None:
             network_seecurity_group_name = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/networkSecurityGroups/%s' % (
@@ -382,12 +392,12 @@ class NetAppCloudManagerConnectorAzure(object):
 
         if self.parameters.get('vnet_resource_group') is not None:
             network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
-                self.parameters['subscription_id'], self.parameters['vnet_resource_group'], self.parameters['vnet_id'])
+                self.parameters['subscription_id'], self.parameters['vnet_resource_group'], self.parameters['vnet_name'])
         else:
             network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
-                self.parameters['subscription_id'], self.parameters['resource_group'], self.parameters['vnet_id'])
+                self.parameters['subscription_id'], self.parameters['resource_group'], self.parameters['vnet_name'])
 
-        subnet = '%s/subnets/%s' % (network, self.parameters['subnet_id'])
+        subnet = '%s/subnets/%s' % (network, self.parameters['subnet_name'])
 
         if self.parameters.get('account_id') is None:
             response, error = self.na_helper.get_account(CLOUD_MANAGER_HOST, self.rest_api)
