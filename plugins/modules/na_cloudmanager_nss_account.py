@@ -126,7 +126,7 @@ class NetAppCloudmanagerNssAccount(object):
         response, err, dummy = self.rest_api.send_request("GET", "%s/accounts" % (
             self.rest_api.api_root_path), None, header=self.headers)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error: unexpected response on getting nss account: %s, %s" % (str(err), str(response)))
         if response is None:
             return None
         nss_accounts = []
@@ -157,16 +157,16 @@ class NetAppCloudmanagerNssAccount(object):
         account['vsaList'] = []
         if self.parameters.get('vsa_list'):
             account['vsaList'] = self.parameters['vsa_list']
-        dummy, err, second_dummy = self.rest_api.send_request("POST", "%s/accounts/nss" % (
+        response, err, second_dummy = self.rest_api.send_request("POST", "%s/accounts/nss" % (
             self.rest_api.api_root_path), None, account, header=self.headers)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error: unexpected response on creating nss account: %s, %s" % (str(err), str(response)))
 
     def delete_nss_account(self):
-        dummy, err, second_dummy = self.rest_api.send_request("DELETE", "%s/accounts/%s" % (
+        response, err, second_dummy = self.rest_api.send_request("DELETE", "%s/accounts/%s" % (
             self.rest_api.api_root_path, self.parameters['public_id']), None, None, header=self.headers)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error: unexpected response on deleting nss account: %s, %s" % (str(err), str(response)))
         return None
 
     def apply(self):

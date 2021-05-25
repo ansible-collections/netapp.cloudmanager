@@ -355,7 +355,7 @@ class NetAppCloudmanagerVolume(object):
         response, err, dummy = self.rest_api.send_request("GET", "%s/volumes?workingEnvironmentId=%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id']), None, header=self.headers)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error: unexpected response on getting volume: %s, %s" % (str(err), str(response)))
         target_vol = dict()
         if response is None:
             return None
@@ -430,7 +430,7 @@ class NetAppCloudmanagerVolume(object):
         response, err, dummy = self.rest_api.send_request("POST", "%s/volumes/quote" % self.rest_api.api_root_path,
                                                           None, quote, header=self.headers)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error: unexpected response on quoting volume: %s, %s" % (str(err), str(response)))
         quote['aggregateName'] = response['aggregateName']
         quote['maxNumOfDisksApprovedToAdd'] = response['numOfDisks']
         if self.parameters.get('enable_deduplication'):
@@ -452,11 +452,11 @@ class NetAppCloudmanagerVolume(object):
         response, err, on_cloud_request_id = self.rest_api.send_request("POST", "%s/volumes?createAggregateIfNotFound=%s" % (
             self.rest_api.api_root_path, True), None, quote, header=self.headers)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error: unexpected on creating volume: %s, %s" % (str(err), str(response)))
         wait_on_completion_api_url = '/occm/api/audit/activeTask/%s' % (str(on_cloud_request_id))
         err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "volume", "create", 20, 5)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error: unexpected response wait_on_completion for creating volume: %s, %s" % (str(err), str(response)))
 
     def modify_volume(self, modify):
         vol = dict()
@@ -481,24 +481,26 @@ class NetAppCloudmanagerVolume(object):
                 vol['shareInfo']['shareName'] = self.parameters['share_name']
         if modify.get('snapshot_policy_name'):
             vol['snapshotPolicyName'] = self.parameters.get('snapshot_policy_name')
-        dummy, err, dummy_second = self.rest_api.send_request("PUT", "%s/volumes/%s/%s/%s" % (
+        response, err, dummy = self.rest_api.send_request("PUT", "%s/volumes/%s/%s/%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name'],
             self.parameters['name']), None, vol, header=self.headers)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error: unexpected response on modifying volume: %s, %s" % (str(err), str(response)))
 
     def delete_volume(self):
-        dummy, err, dummy_second = self.rest_api.send_request("DELETE", "%s/volumes/%s/%s/%s" % (
+        response, err, dummy = self.rest_api.send_request("DELETE", "%s/volumes/%s/%s/%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name'],
             self.parameters['name']), None, None, header=self.headers)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error: unexpected response on deleting volume: %s, %s" % (str(err), str(response)))
 
     def get_initiator(self, alias_name):
-        response, err, dummy_second = self.rest_api.send_request("GET", "%s/volumes/initiator" % (
+        response, err, dummy = self.rest_api.send_request("GET", "%s/volumes/initiator" % (
             self.rest_api.api_root_path), None, header=self.headers)
+        # self.log("get_initiator")
+        # self.log(str(response))
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error: unexpected response on getting initiator: %s, %s" % (str(err), str(response)))
         result = dict()
         if response is None:
             return None
@@ -511,17 +513,19 @@ class NetAppCloudmanagerVolume(object):
 
     def create_initiator(self, initiator):
         ini = self.na_helper.convert_module_args_to_api(initiator)
-        response, err, dummy_second = self.rest_api.send_request("POST", "%s/volumes/initiator" % (
+        response, err, dummy = self.rest_api.send_request("POST", "%s/volumes/initiator" % (
             self.rest_api.api_root_path), None, ini, header=self.headers)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error: unexpected response on creating initiator: %s, %s" % (str(err), str(response)))
 
     def get_igroup(self, igroup_name):
-        response, err, dummy_second = self.rest_api.send_request("GET", "%s/volumes/igroups/%s/%s" % (
+        response, err, dummy = self.rest_api.send_request("GET", "%s/volumes/igroups/%s/%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name']),
             None, None, header=self.headers)
+        # self.log("get_igroup")
+        # self.log(str(response))
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error: unexpected response on getting igroup: %s, %s" % (str(err), str(response)))
         result = dict()
         if response is None:
             return None

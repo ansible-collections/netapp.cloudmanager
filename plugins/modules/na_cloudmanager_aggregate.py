@@ -205,7 +205,7 @@ class NetAppCloudmanagerAggregate(object):
             api = '%s/aggregates?workingEnvironmentId=%s' % (api_root_path, working_environment_detail['publicId'])
         response, error, dummy = self.rest_api.get(api, header=self.headers)
         if error:
-            self.module.fail_json(msg="Error: Failed to get aggregate list: %s" % str(error))
+            self.module.fail_json(msg="Error: Failed to get aggregate list: %s, %s" % (str(error), str(response)))
         for aggr in response:
             if aggr['name'] == self.parameters['name']:
                 return aggr
@@ -235,7 +235,7 @@ class NetAppCloudmanagerAggregate(object):
             body['iops'] = self.parameters['iops']
         response, error, dummy = self.rest_api.post(api, body, header=self.headers)
         if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on aggregate creation: %s" % str(error))
+            self.module.fail_json(msg="Error: unexpected response on aggregate creation: %s, %s" % (str(error), str(response)))
 
     def update_aggregate(self, add_number_of_disks):
         '''
@@ -250,7 +250,7 @@ class NetAppCloudmanagerAggregate(object):
         }
         response, error, dummy = self.rest_api.post(api, body, header=self.headers)
         if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on aggregate adding disks: %s" % str(error))
+            self.module.fail_json(msg="Error: unexpected response on aggregate adding disks: %s, %s" % (str(error), str(response)))
 
     def delete_aggregate(self):
         '''
@@ -264,7 +264,7 @@ class NetAppCloudmanagerAggregate(object):
         }
         response, error, dummy = self.rest_api.delete(api, body, header=self.headers)
         if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on aggregate deletion: %s" % str(error))
+            self.module.fail_json(msg="Error: unexpected response on aggregate deletion: %s, %s" % (str(error), str(response)))
 
     def apply(self):
         '''
