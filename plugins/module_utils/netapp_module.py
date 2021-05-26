@@ -137,7 +137,7 @@ class NetAppModule(object):
         for we in we_list:
             if we['name'] == self.parameters[name]:
                 return we, None
-        return None, "Not found"
+        return None, "Working environment is not found"
 
     def get_working_environment_details_by_name(self, rest_api, headers, name='working_environment_name'):
         '''
@@ -172,7 +172,7 @@ class NetAppModule(object):
         working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['vsaWorkingEnvironments'], name)
         if error is None:
             return working_environment_details, None
-        return None, "Not found"
+        return None, "Working environment is not found"
 
     def get_working_environment_details(self, rest_api, headers):
         '''

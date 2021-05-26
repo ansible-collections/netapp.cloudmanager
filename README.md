@@ -34,7 +34,10 @@ https://github.com/ansible-collections/netapp/wiki
 ### New Options
   - na_cloudmanager_cvo_aws: Support one new ebs_volume_type gp3
   - na_cloudmanager_connector_azure: Add `subnet_name` as aliases of `subnet_id`, `vnet_name` as aliases of `vnet_id`
-  
+  - na_cloudmanager_aggregate - Add provider_volume_type gp3 support.
+  - na_cloudmanager_volume - Add provider_volume_type gp3 support.
+  - na_cloudmanager_snapmirror - Add provider_volume_type gp3 support.
+   
 ### Bug Fixes
   - na_cloudmanager_aggregate: Improve error message
   - na_cloudmanager_cvo_gcp - Apply network_project_id on vpc1_cluster_connectivity, vpc2_ha_connectivity, vpc3_data_replication, subnet1_cluster_connectivity, subnet2_ha_connectivity, subnet3_data_replication

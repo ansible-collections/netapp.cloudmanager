@@ -90,7 +90,13 @@ options:
     iops:
         description:
         - Provisioned IOPS. Needed only when providerVolumeType is "io1".
-        type: str
+        type: int
+
+    throughput:
+        description:
+        - Unit is Mb/s. Valid range 125-1000.
+        - Required only when provider_volume_type is 'gp3'.
+        type: int
 
 notes:
 - Support check_mode.
@@ -157,13 +163,18 @@ class NetAppCloudmanagerAggregate(object):
             home_node=dict(required=False, type='str'),
             provider_volume_type=dict(required=False, type='str'),
             capacity_tier=dict(required=False, choices=['NONE', 'S3', 'Blob', 'cloudStorage'], type='str'),
-            iops=dict(required=False, type='str'),
+            iops=dict(required=False, type='int'),
+            throughput=dict(required=False, type='int'),
         ))
 
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
             required_one_of=[
                 ('working_environment_name', 'working_environment_id'),
+            ],
+            required_if=[
+                ['provider_volume_type', 'gp3', ['iops', 'throughput']],
+                ['provider_volume_type', 'io1', ['iops']],
             ],
             supports_check_mode=True
         )
@@ -233,6 +244,8 @@ class NetAppCloudmanagerAggregate(object):
             body['capacityTier'] = self.parameters['capacity_tier']
         if 'iops' in self.parameters:
             body['iops'] = self.parameters['iops']
+        if 'throughput' in self.parameters:
+            body['throughput'] = self.parameters['throughput']
         response, error, dummy = self.rest_api.post(api, body, header=self.headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on aggregate creation: %s, %s" % (str(error), str(response)))

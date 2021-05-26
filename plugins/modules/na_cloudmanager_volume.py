@@ -73,7 +73,7 @@ options:
     provider_volume_type:
         description:
         - The underlying cloud provider volume type.
-        - For AWS is ["gp2", "io1", "st1", "sc1"].
+        - For AWS is ["gp3", "gp2", "io1", "st1", "sc1"].
         - For Azure is ['Premium_LRS','Standard_LRS','StandardSSD_LRS'].
         - For GCP is ['pd-ssd','pd-standard'].
         type: str
@@ -135,6 +135,12 @@ options:
     iops:
         description:
         - Provisioned IOPS. Needed only when provider_volume_type is "io1".
+        type: int
+
+    throughput:
+        description:
+        - Unit is Mb/s. Valid range 125-1000.
+        - Required only when provider_volume_type is 'gp3'.
         type: int
 
     volume_protocol:
@@ -251,6 +257,7 @@ class NetAppCloudmanagerVolume(object):
             export_policy_ip=dict(required=False, type='list', elements='str'),
             export_policy_nfs_version=dict(required=False, type='list', elements='str'),
             iops=dict(required=False, type='int'),
+            throughput=dict(required=False, type='int'),
             volume_protocol=dict(required=False, type='str', choices=['nfs', 'cifs', 'iscsi'], default='nfs'),
             share_name=dict(required=False, type='str'),
             permission=dict(required=False, type='str'),
@@ -266,6 +273,10 @@ class NetAppCloudmanagerVolume(object):
             argument_spec=self.argument_spec,
             required_one_of=[
                 ('working_environment_name', 'working_environment_id'),
+            ],
+            required_if=[
+                ['provider_volume_type', 'gp3', ['iops', 'throughput']],
+                ['provider_volume_type', 'io1', ['iops']],
             ],
             supports_check_mode=True
         )
@@ -322,9 +333,6 @@ class NetAppCloudmanagerVolume(object):
 
         if self.parameters.get('capacity_tier') == 'S3' and not self.parameters.get('tiering_policy'):
             self.module.fail_json(msg="Error: tiering policy is required when capacity tier is S3")
-
-        if self.parameters.get('provider_volume_type') and not self.parameters.get('iops'):
-            self.module.fail_json(msg="Error: iops is required when provider_volume_type is io1")
 
         if self.parameters.get('igroups'):
             current_igroups = []
@@ -449,6 +457,8 @@ class NetAppCloudmanagerVolume(object):
             quote['providerVolumeType'] = self.parameters['provider_volume_type']
         if self.parameters.get('iops'):
             quote['iops'] = self.parameters.get('iops')
+        if self.parameters.get('throughput'):
+            quote['throughput'] = self.parameters.get('throughput')
         response, err, on_cloud_request_id = self.rest_api.send_request("POST", "%s/volumes?createAggregateIfNotFound=%s" % (
             self.rest_api.api_root_path, True), None, quote, header=self.headers)
         if err is not None:

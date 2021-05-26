@@ -103,7 +103,7 @@ options:
   provider_volume_type:
     description:
     - The underlying cloud provider volume type.
-    - For AWS ['gp2', 'io1', 'st1', 'sc1'].
+    - For AWS ['gp3', 'gp2', 'io1', 'st1', 'sc1'].
     - For Azure ['Premium_LRS','Standard_LRS','StandardSSD_LRS'].
     - For GCP ['pd-ssd','pd-standard'].
     type: str
@@ -206,7 +206,7 @@ class NetAppCloudmanagerSnapmirror:
 
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += CLOUD_MANAGER_HOST
-
+        self.rest_api.api_root_path = None
         self.headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
@@ -294,10 +294,13 @@ class NetAppCloudmanagerSnapmirror:
                 self.parameters['destination_svm_name'] = dest_working_env_detail['svmName']
 
         if dest_we_info['workingEnvironmentType'] != 'ON_PREM':
-            quote = self.build_quote_request(dest_we_info, vol_dest_quote)
-
+            quote = self.build_quote_request(source_we_info, dest_we_info, vol_dest_quote)
             quote_response = self.quote_volume(quote)
             replication_volume['numOfDisksApprovedToAdd'] = int(quote_response['numOfDisks'])
+            if 'iops' in quote:
+                replication_volume['iops'] = quote['iops']
+            if 'throughput' in quote:
+                replication_volume['throughput'] = quote['throughput']
             if self.parameters.get('destination_aggregate_name') is not None:
                 replication_volume['advancedMode'] = True
             else:
@@ -305,6 +308,7 @@ class NetAppCloudmanagerSnapmirror:
                 replication_volume['destinationAggregateName'] = quote_response['aggregateName']
         if self.parameters.get('provider_volume_type') is None:
             replication_volume['destinationProviderVolumeType'] = source_volume_resp['providerVolumeType']
+
         if self.parameters.get('capacity_tier') is not None:
             replication_volume['destinationCapacityTier'] = self.parameters['capacity_tier']
         replication_request['sourceWorkingEnvironmentId'] = source_we_info['publicId']
@@ -362,7 +366,23 @@ class NetAppCloudmanagerSnapmirror:
             self.module.fail_json(changed=False, msg='Error getting volume on prem %s: %s.' % (err, response))
         return response
 
-    def build_quote_request(self, dest_we_info, vol_dest_quote):
+    def get_aggregate_detail(self, working_environment_detail, aggregate_name):
+        self.na_helper.set_api_root_path(working_environment_detail, self.rest_api)
+        api_root_path = self.rest_api.api_root_path
+        if working_environment_detail['cloudProviderName'] != "Amazon":
+            api = '%s/aggregates/%s'
+        else:
+            api = '%s/aggregates?workingEnvironmentId=%s'
+        api = api % (api_root_path, working_environment_detail['publicId'])
+        response, error, dummy = self.rest_api.get(api, header=self.headers)
+        if error:
+            self.module.fail_json(msg="Error: Failed to get aggregate list: %s" % str(error))
+        for aggr in response:
+            if aggr['name'] == aggregate_name:
+                return aggr
+        return None
+
+    def build_quote_request(self, source_we_info, dest_we_info, vol_dest_quote):
         quote = dict()
         quote['size'] = {'size': vol_dest_quote['size']['size'], 'unit': vol_dest_quote['size']['unit']}
         quote['name'] = self.parameters['destination_volume_name']
@@ -372,8 +392,17 @@ class NetAppCloudmanagerSnapmirror:
         quote['enableCompression'] = vol_dest_quote['compression']
         quote['verifyNameUniqueness'] = True
         quote['replicationFlow'] = True
-        if vol_dest_quote.get('iops'):
-            quote['iops'] = vol_dest_quote['iops']
+
+        # Use source working environment to get physical properties info of volumes
+        aggregate = self.get_aggregate_detail(source_we_info, vol_dest_quote['aggregateName'])
+        if aggregate is None:
+            self.module.fail_json(changed=False, msg='Error getting aggregate on source volume')
+        # All the volumes in one aggregate have the same physical properties
+        if aggregate['providerVolumes'][0]['diskType'] == 'gp3' or aggregate['providerVolumes'][0]['diskType'] == 'io1'\
+                or aggregate['providerVolumes'][0]['diskType'] == 'io2':
+            quote['iops'] = aggregate['providerVolumes'][0]['iops']
+        if aggregate['providerVolumes'][0]['diskType'] == 'gp3':
+            quote['throughput'] = aggregate['providerVolumes'][0]['throughput']
         quote['workingEnvironmentId'] = dest_we_info['publicId']
         quote['svmName'] = self.parameters['destination_svm_name']
         if self.parameters.get('capacity_tier') is not None:
