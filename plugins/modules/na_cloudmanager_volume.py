@@ -101,6 +101,11 @@ options:
         - The name of the SVM. The default SVM name is used, if a name is not provided.
         type: str
 
+    aggregate_name:
+        description:
+        - The aggregate in which the volume will be created. If not provided, Cloud Manager chooses the best aggregate.
+        type: str
+
     capacity_tier:
         description:
         - The volume's capacity tier for tiering cold data to object storage.
@@ -251,6 +256,7 @@ class NetAppCloudmanagerVolume(object):
             enable_thin_provisioning=dict(required=False, type='bool'),
             enable_compression=dict(required=False, type='bool'),
             svm_name=dict(required=False, type='str'),
+            aggregate_name=dict(required=False, type='str'),
             capacity_tier=dict(required=False, type='str', choices=['NONE', 'S3', 'Blob', 'cloudStorage']),
             tiering_policy=dict(required=False, type='str', choices=['none', 'snapshot_only', 'auto', 'all']),
             export_policy_type=dict(required=False, type='str'),
@@ -413,8 +419,10 @@ class NetAppCloudmanagerVolume(object):
         quote['verifyNameUniqueness'] = True  # Always hard coded to true.
         quote['unit'] = self.parameters['size_unit']
         quote['size'] = {'size': self.parameters['size'], 'unit': self.parameters['size_unit']}
+        create_aggregate_if_not_exists = True
         if self.parameters.get('aggregate_name'):
             quote['aggregateName'] = self.parameters['aggregate_name']
+            create_aggregate_if_not_exists = False
 
         if self.parameters['volume_protocol'] == 'nfs':
             quote['exportPolicyInfo'] = dict()
@@ -439,6 +447,7 @@ class NetAppCloudmanagerVolume(object):
                                                           None, quote, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg="Error: unexpected response on quoting volume: %s, %s" % (str(err), str(response)))
+        quote['newAggregate'] = response['newAggregate']
         quote['aggregateName'] = response['aggregateName']
         quote['maxNumOfDisksApprovedToAdd'] = response['numOfDisks']
         if self.parameters.get('enable_deduplication'):
@@ -460,7 +469,7 @@ class NetAppCloudmanagerVolume(object):
         if self.parameters.get('throughput'):
             quote['throughput'] = self.parameters.get('throughput')
         response, err, on_cloud_request_id = self.rest_api.send_request("POST", "%s/volumes?createAggregateIfNotFound=%s" % (
-            self.rest_api.api_root_path, True), None, quote, header=self.headers)
+            self.rest_api.api_root_path, create_aggregate_if_not_exists), None, quote, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg="Error: unexpected on creating volume: %s, %s" % (str(err), str(response)))
         wait_on_completion_api_url = '/occm/api/audit/activeTask/%s' % (str(on_cloud_request_id))
