@@ -5,6 +5,29 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.7.0
+=======
+
+Minor Changes
+-------------
+
+- na_cloudmanager_aggregate - Add provider_volume_type gp3 support.
+- na_cloudmanager_connector_gcp - rename option ``service_account_email`` and ``service_account_path`` to ``gcp_service_account_email`` and ``gcp_service_account_path`` respectively.
+- na_cloudmanager_cvo_aws - Add ebs_volume_type gp3 support.
+- na_cloudmanager_snapmirror - Add provider_volume_type gp3 support.
+- na_cloudmanager_volume - Add aggregate_name support on volume creation.
+- na_cloudmanager_volume - Add provider_volume_type gp3 support.
+
+Bugfixes
+--------
+
+- na_cloudmanager_aggregate - Improve error message
+- na_cloudmanager_connector_azure - Add subnet_name as aliases of subnet_id, vnet_name as aliases of vnet_id.
+- na_cloudmanager_connector_azure - Fix KeyError client_id
+- na_cloudmanager_cvo_gcp - Apply network_project_id check on vpc1_cluster_connectivity, vpc2_ha_connectivity, vpc3_data_replication, subnet1_cluster_connectivity, subnet2_ha_connectivity, subnet3_data_replication
+- na_cloudmanager_nss_account - Improve error message
+- na_cloudmanager_volume - Improve error message
+
 v21.6.0
 =======
 
