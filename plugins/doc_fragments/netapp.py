@@ -17,6 +17,14 @@ options:
     type: str
     description:
     - The refresh token for NetApp Cloud Manager API operations.
+
+  environment:
+    type: str
+    description:
+    - The environment for NetApp Cloud Manager API operations.
+    default: prod
+    choices: ['prod', 'stage']
+    version_added: 21.8.0
 notes:
   - The modules prefixed with na_cloudmanager are built to manage CloudManager and CVO deployments in AWS/GCP/Azure clouds.
 """

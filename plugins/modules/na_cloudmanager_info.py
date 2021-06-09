@@ -125,8 +125,6 @@ import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as ne
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module import NetAppModule
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
 
-CM_API_URL = "cloudmanager.cloud.netapp.com"
-
 
 class NetAppCloudmanagerInfo(object):
     '''
@@ -153,7 +151,7 @@ class NetAppCloudmanagerInfo(object):
         self.parameters = self.na_helper.set_parameters(self.module.params)
         # Calling generic rest_api class
         self.rest_api = CloudManagerRestAPI(self.module)
-        self.rest_api.url += CM_API_URL
+        self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = None
         self.methods = dict(
             working_environments_info=self.na_helper.get_working_environments_info,

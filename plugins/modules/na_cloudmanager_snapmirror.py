@@ -159,7 +159,6 @@ import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as ne
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module import NetAppModule
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
 
-CLOUD_MANAGER_HOST = "cloudmanager.cloud.netapp.com"
 PROVIDER_TO_CAPACITY_TIER = {'amazon': 'S3', 'azure': 'Blob', 'gcp': 'cloudStorage'}
 
 
@@ -205,7 +204,7 @@ class NetAppCloudmanagerSnapmirror:
         self.parameters = self.na_helper.set_parameters(self.module.params)
 
         self.rest_api = CloudManagerRestAPI(self.module)
-        self.rest_api.url += CLOUD_MANAGER_HOST
+        self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = None
         self.headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"

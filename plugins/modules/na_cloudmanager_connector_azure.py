@@ -235,8 +235,6 @@ except ImportError as exc:
     HAS_AZURE_LIB = False
     IMPORT_EXCEPTION = exc
 
-CLOUD_MANAGER_HOST = "cloudmanager.cloud.netapp.com"
-
 
 class NetAppCloudManagerConnectorAzure(object):
     ''' object initialize and class methods '''
@@ -324,6 +322,8 @@ class NetAppCloudManagerConnectorAzure(object):
         params['customData']['value'] = json.dumps(user_data)
         params['location']['value'] = self.parameters['location']
         params['virtualMachineName']['value'] = self.parameters['name']
+        if self.rest_api.environment == 'stage':
+            params['environment']['value'] = self.rest_api.environment
         if self.parameters.get('vnet_resource_group') is not None:
             network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
                 self.parameters['subscription_id'], self.parameters['vnet_resource_group'], self.parameters['vnet_name'])
@@ -334,14 +334,14 @@ class NetAppCloudManagerConnectorAzure(object):
         subnet = '%s/subnets/%s' % (network, self.parameters['subnet_name'])
 
         if self.parameters.get('network_security_resource_group') is not None:
-            network_seecurity_group_name = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/networkSecurityGroups/%s' % (
+            network_security_group_name = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/networkSecurityGroups/%s' % (
                 self.parameters['subscription_id'], self.parameters['network_security_resource_group'], self.parameters['network_security_group_name'])
         else:
-            network_seecurity_group_name = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/networkSecurityGroups/%s' % (
+            network_security_group_name = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/networkSecurityGroups/%s' % (
                 self.parameters['subscription_id'], self.parameters['resource_group'], self.parameters['network_security_group_name'])
 
         params['virtualNetworkId']['value'] = network
-        params['networkSecurityGroupName']['value'] = network_seecurity_group_name
+        params['networkSecurityGroupName']['value'] = network_security_group_name
         params['virtualMachineSize']['value'] = self.parameters['virtual_machine_size']
         params['subnetId']['value'] = subnet
 
@@ -370,7 +370,7 @@ class NetAppCloudManagerConnectorAzure(object):
         time.sleep(120)
         retries = 30
         while retries > 0:
-            occm_resp, error = self.na_helper.check_occm_status(CLOUD_MANAGER_HOST, self.rest_api, client_id)
+            occm_resp, error = self.na_helper.check_occm_status(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, client_id)
             if error is not None:
                 self.module.fail_json(
                     msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
@@ -400,7 +400,7 @@ class NetAppCloudManagerConnectorAzure(object):
         subnet = '%s/subnets/%s' % (network, self.parameters['subnet_name'])
 
         if self.parameters.get('account_id') is None:
-            response, error = self.na_helper.get_account(CLOUD_MANAGER_HOST, self.rest_api)
+            response, error = self.na_helper.get_account(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api)
             if error is not None:
                 self.module.fail_json(
                     msg="Error: unexpected response on getting account: %s, %s" % (str(error), str(response)))
@@ -428,7 +428,7 @@ class NetAppCloudManagerConnectorAzure(object):
             }
         }
 
-        register_url = "%s/agents-mgmt/connector-setup" % CLOUD_MANAGER_HOST
+        register_url = "%s/agents-mgmt/connector-setup" % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         response, error, dummy = self.rest_api.post(register_url, body, header=headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on getting userdata for connector setup: %s, %s" % (str(error), str(response)))
@@ -511,7 +511,7 @@ class NetAppCloudManagerConnectorAzure(object):
 
         retries = 16
         while retries > 0:
-            occm_resp, error = self.na_helper.check_occm_status(CLOUD_MANAGER_HOST, self.rest_api,
+            occm_resp, error = self.na_helper.check_occm_status(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api,
                                                                 self.parameters['client_id'])
             if error is not None:
                 self.module.fail_json(
@@ -525,7 +525,7 @@ class NetAppCloudManagerConnectorAzure(object):
             # Taking too long for terminating OCCM
             return self.module.fail_json(msg="Taking too long for instance to finish terminating")
 
-        delete_occum_url = "%s/agents-mgmt/agent/%sclients" % (CLOUD_MANAGER_HOST, self.parameters['client_id'])
+        delete_occum_url = "%s/agents-mgmt/agent/%sclients" % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.parameters['client_id'])
         headers = {
             "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
             "X-Tenancy-Account-Id": self.parameters['account_id']

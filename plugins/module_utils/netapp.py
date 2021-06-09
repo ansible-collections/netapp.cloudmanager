@@ -41,9 +41,27 @@ try:
 except ImportError:
     ansible_version = 'unknown'
 
-COLLECTION_VERSION = "21.7.0"
-AUTH0_DOMAIN = 'netapp-cloud-account.auth0.com'
-AUTH0_CLIENT = 'Mu0V1ywgYteI6w1MbD15fKfVIUrNXGWC'
+COLLECTION_VERSION = "21.8.0"
+PROD_ENVIRONMENT = {
+    'CLOUD_MANAGER_HOST': 'cloudmanager.cloud.netapp.com',
+    'AUTH0_DOMAIN': 'netapp-cloud-account.auth0.com',
+    'AUTH0_CLIENT': 'Mu0V1ywgYteI6w1MbD15fKfVIUrNXGWC',
+    'AMI_FILTER': 'Setup-As-Service-AMI-Prod*',
+    'AWS_ACCOUNT': '952013314444',
+    'GCP_IMAGE_PROJECT': 'netapp-cloudmanager',
+    'GCP_IMAGE_FAMILY': 'cloudmanager',
+    'CVS_HOST_NAME': 'https://api.services.cloud.netapp.com'
+}
+STAGE_ENVIRONMENT = {
+    'CLOUD_MANAGER_HOST': 'staging.cloudmanager.cloud.netapp.com',
+    'AUTH0_DOMAIN': 'staging-netapp-cloud-account.auth0.com',
+    'AUTH0_CLIENT': 'O6AHa7kedZfzHaxN80dnrIcuPBGEUvEv',
+    'AMI_FILTER': 'Setup-As-Service-AMI-*',
+    'AWS_ACCOUNT': '282316784512',
+    'GCP_IMAGE_PROJECT': 'tlv-automation',
+    'GCP_IMAGE_FAMILY': 'occm-automation',
+    'CVS_HOST_NAME': 'https://staging.api.services.cloud.netapp.com'
+}
 
 try:
     import requests
@@ -70,7 +88,8 @@ POW2_BYTE_MAP = dict(
 def cloudmanager_host_argument_spec():
 
     return dict(
-        refresh_token=dict(required=True, type='str', no_log=True)
+        refresh_token=dict(required=True, type='str', no_log=True),
+        environment=dict(required=False, type='str', choices=['prod', 'stage'], default='prod')
     )
 
 
@@ -80,6 +99,11 @@ class CloudManagerRestAPI(object):
         self.module = module
         self.timeout = timeout
         self.refresh_token = self.module.params['refresh_token']
+        self.environment = self.module.params['environment']
+        if self.environment == 'prod':
+            self.environment_data = PROD_ENVIRONMENT
+        elif self.environment == 'stage':
+            self.environment_data = STAGE_ENVIRONMENT
         self.token_type, self.token = self.get_token()
         self.url = 'https://'
         self.api_root_path = None
@@ -166,9 +190,9 @@ class CloudManagerRestAPI(object):
         return self.send_request(method=method, api=api, params=params, json=data, header=header)
 
     def get_token(self):
-        token_res = requests.post('https://' + AUTH0_DOMAIN + '/oauth/token',
+        token_res = requests.post('https://' + self.environment_data['AUTH0_DOMAIN'] + '/oauth/token',
                                   json={"grant_type": "refresh_token", "refresh_token": self.refresh_token,
-                                        "client_id": AUTH0_CLIENT, "audience": "https://api.cloud.netapp.com"})
+                                        "client_id": self.environment_data['AUTH0_CLIENT'], "audience": "https://api.cloud.netapp.com"})
         token_dict = token_res.json()
         token = token_dict['access_token']
         token_type = token_dict['token_type']

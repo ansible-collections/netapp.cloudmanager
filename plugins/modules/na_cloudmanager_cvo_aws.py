@@ -404,7 +404,6 @@ except ImportError as exc:
     HAS_AWS_LIB = False
     IMPORT_EXCEPTION = exc
 
-Cloud_Manager_Host = "cloudmanager.cloud.netapp.com"
 AWS_License_Types = ['cot-standard-paygo', 'cot-premium-paygo', 'cot-explore-paygo', 'cot-premium-byol', 'ha-cot-standard-paygo',
                      'ha-cot-premium-paygo', 'ha-cot-premium-byol', 'ha-cot-explore-paygo']
 
@@ -496,7 +495,7 @@ class NetAppCloudManagerCVOAWS:
         name: working environment name
         """
 
-        api_url = '%s/occm/api/working-environments' % Cloud_Manager_Host
+        api_url = '%s/occm/api/working-environments' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         response, error, dummy = self.rest_api.get(api_url, header=self.headers)
         if error is not None:
             self.module.fail_json(
@@ -513,7 +512,7 @@ class NetAppCloudManagerCVOAWS:
         Get workspace ID (tenant)
         """
 
-        api_url = '%s/occm/api/tenants' % Cloud_Manager_Host
+        api_url = '%s/occm/api/tenants' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         response, error, dummy = self.rest_api.get(api_url, header=self.headers)
         if error is not None:
             self.module.fail_json(
@@ -526,7 +525,7 @@ class NetAppCloudManagerCVOAWS:
         Get nss account
         """
 
-        api_url = '%s/occm/api/accounts' % Cloud_Manager_Host
+        api_url = '%s/occm/api/accounts' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         response, error, dummy = self.rest_api.get(api_url, header=self.headers)
         if error is not None:
             self.module.fail_json(
@@ -693,14 +692,14 @@ class NetAppCloudManagerCVOAWS:
         else:
             base_url = '/occm/api/vsa/working-environments'
 
-        api_url = '%s%s' % (Cloud_Manager_Host, base_url)
+        api_url = '%s%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], base_url)
 
         response, error, on_cloud_request_id = self.rest_api.post(api_url, json, header=self.headers)
         if error is not None:
             self.module.fail_json(
                 msg="Error: unexpected response on creating cvo aws: %s, %s" % (str(error), str(response)))
         working_environment_id = response['publicId']
-        wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (Cloud_Manager_Host, str(on_cloud_request_id))
+        wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], str(on_cloud_request_id))
         err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "CVO", "create", 60, 60)
 
         if err is not None:
@@ -717,12 +716,12 @@ class NetAppCloudManagerCVOAWS:
         else:
             base_url = '/occm/api/vsa/working-environments'
 
-        api_url = '%s%s/%s' % (Cloud_Manager_Host, base_url, we_id)
+        api_url = '%s%s/%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], base_url, we_id)
         response, error, on_cloud_request_id = self.rest_api.delete(api_url, None, header=self.headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on deleting cvo aws: %s, %s" % (str(error), str(response)))
 
-        wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (Cloud_Manager_Host, str(on_cloud_request_id))
+        wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], str(on_cloud_request_id))
         err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "CVO", "delete", 40, 60)
 
         if err is not None:

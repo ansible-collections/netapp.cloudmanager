@@ -403,7 +403,6 @@ import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as ne
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module import NetAppModule
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
 
-CLOUD_MANAGER_HOST = "cloudmanager.cloud.netapp.com"
 GCP_LICENSE_TYPES = ["gcp-cot-standard-paygo", "gcp-cot-explore-paygo", "gcp-cot-premium-paygo", "gcp-cot-premium-byol",
                      "gcp-ha-cot-standard-paygo", "gcp-ha-cot-premium-paygo", "gcp-ha-cot-explore-paygo",
                      "gcp-ha-cot-premium-byol"]
@@ -486,7 +485,7 @@ class NetAppCloudManagerCVOGCP:
         Get workspace ID (tenant)
         """
 
-        api_url = '%s/occm/api/tenants' % CLOUD_MANAGER_HOST
+        api_url = '%s/occm/api/tenants' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         response, error, dummy = self.rest_api.get(api_url, header=self.headers)
         if error is not None:
             self.module.fail_json(
@@ -499,7 +498,7 @@ class NetAppCloudManagerCVOGCP:
         Get nss account
         """
 
-        api_url = '%s/occm/api/accounts' % CLOUD_MANAGER_HOST
+        api_url = '%s/occm/api/accounts' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         response, error, dummy = self.rest_api.get(api_url, header=self.headers)
         if error is not None:
             self.module.fail_json(
@@ -658,13 +657,13 @@ class NetAppCloudManagerCVOGCP:
         if self.parameters.get('is_ha'):
             base_url = '/occm/api/gcp/ha/working-environments'
 
-        api_url = '%s%s' % (CLOUD_MANAGER_HOST, base_url)
+        api_url = '%s%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], base_url)
         response, error, on_cloud_request_id = self.rest_api.post(api_url, json, header=self.headers)
         if error is not None:
             self.module.fail_json(
                 msg="Error: unexpected response on creating cvo gcp: %s, %s" % (str(error), str(response)))
         working_environment_id = response['publicId']
-        wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (CLOUD_MANAGER_HOST, str(on_cloud_request_id))
+        wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], str(on_cloud_request_id))
         err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "CVO", "create", 60, 60)
 
         if err is not None:
@@ -676,7 +675,7 @@ class NetAppCloudManagerCVOGCP:
         Get working environment details including:
         name: working environment name
         """
-        api_url = '%s/occm/api/working-environments' % CLOUD_MANAGER_HOST
+        api_url = '%s/occm/api/working-environments' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         response, error, dummy = self.rest_api.get(api_url, header=self.headers)
         if error is not None:
             self.module.fail_json(
@@ -693,12 +692,12 @@ class NetAppCloudManagerCVOGCP:
         Delete GCP CVO
         """
         self.na_helper.set_api_root_path(self.get_working_environment(), self.rest_api)
-        api_url = '%s%s/%s' % (CLOUD_MANAGER_HOST, self.rest_api.api_root_path + '/working-environments', we_id)
+        api_url = '%s%s/%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api.api_root_path + '/working-environments', we_id)
         response, error, on_cloud_request_id = self.rest_api.delete(api_url, None, header=self.headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on deleting cvo gcp: %s, %s" % (str(error), str(response)))
 
-        wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (CLOUD_MANAGER_HOST, str(on_cloud_request_id))
+        wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], str(on_cloud_request_id))
         err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "CVO", "delete", 40, 60)
         if err is not None:
             self.module.fail_json(msg="Error: unexpected response wait_on_completion for deleting cvo gcp: %s" % str(err))

@@ -194,10 +194,7 @@ try:
 except ImportError as exc:
     IMPORT_ERRORS.append(str(exc))
 
-CLOUD_MANAGER_HOST = "cloudmanager.cloud.netapp.com"
 GCP_DEPLOYMENT_MANAGER = "www.googleapis.com"
-GCP_IMAGE_PROJECT = "netapp-cloudmanager"
-GCP_IMAGE_FAMILY = "cloudmanager"
 UUID = str(uuid.uuid4())
 
 
@@ -308,13 +305,13 @@ class NetAppCloudManagerConnectorGCP(object):
         # get account ID
         if 'account_id' not in self.parameters:
             # get account ID
-            response, error = self.na_helper.get_account(CLOUD_MANAGER_HOST, self.rest_api)
+            response, error = self.na_helper.get_account(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api)
             if error is not None:
                 self.module.fail_json(
                     msg="Error: unexpected response on getting account: %s, %s" % (str(error), str(response)))
             self.parameters['account_id'] = response
         # registerAgentTOServiceForGCP
-        response, error = self.na_helper.register_agent_to_service(CLOUD_MANAGER_HOST, self.rest_api, "GCP", "")
+        response, error = self.na_helper.register_agent_to_service(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, "GCP", "")
         if error is not None:
             self.module.fail_json(
                 msg="Error: register agent to service for gcp failed: %s, %s" % (str(error), str(response)))
@@ -414,7 +411,8 @@ class NetAppCloudManagerConnectorGCP(object):
             'name': device_name,
             'properties': {'name': device_name,
                            'sizeGb': 100,
-                           'sourceImage': 'projects/%s/global/images/family/%s' % (GCP_IMAGE_PROJECT, GCP_IMAGE_FAMILY),
+                           'sourceImage': 'projects/%s/global/images/family/%s' % (self.rest_api.environment_data['GCP_IMAGE_PROJECT'],
+                                                                                   self.rest_api.environment_data['GCP_IMAGE_FAMILY']),
                            'type': 'zones/%s/diskTypes/pd-ssd' % (self.parameters['zone']),
                            'zone': self.parameters['zone']
                            },
@@ -463,7 +461,7 @@ class NetAppCloudManagerConnectorGCP(object):
         time.sleep(60)
         retries = 16
         while retries > 0:
-            occm_resp, error = self.na_helper.check_occm_status(CLOUD_MANAGER_HOST, self.rest_api, client_id)
+            occm_resp, error = self.na_helper.check_occm_status(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, client_id)
             if error is not None:
                 self.module.fail_json(
                     msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
@@ -532,7 +530,8 @@ class NetAppCloudManagerConnectorGCP(object):
         # check occm status
         retries = 30
         while retries > 0:
-            occm_resp, error = self.na_helper.check_occm_status(CLOUD_MANAGER_HOST, self.rest_api, self.parameters['client_id'])
+            occm_resp, error = self.na_helper.check_occm_status(self.rest_api.environment_data['CLOUD_MANAGER_HOST'],
+                                                                self.rest_api, self.parameters['client_id'])
             if error is not None:
                 self.module.fail_json(
                     msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
@@ -545,7 +544,7 @@ class NetAppCloudManagerConnectorGCP(object):
             # Taking too long for terminating OCCM
             return self.module.fail_json(msg="Taking too long for instance to finish terminating")
 
-        response, error = self.na_helper.delete_occm(CLOUD_MANAGER_HOST, self.rest_api, self.parameters['client_id'])
+        response, error = self.na_helper.delete_occm(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, self.parameters['client_id'])
         if error is not None:
             self.module.fail_json(
                 msg="Error: unexpected response on deleting OCCM: %s, %s" % (str(error), str(response)))

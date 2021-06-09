@@ -29,9 +29,16 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.8.0
+
+### New Options
+  - Adding stage environment to all modules in cloudmanager
+
 ## 21.7.0
 
 ### New Options
+  - na_cloudmanager_cvo_aws: Support one new ebs_volume_type gp3
+  - Adding stage environemt to all modules in cloudmanager
   - na_cloudmanager_volume: Add `aggregate_name` support on volume creation.
   - na_cloudmanager_cvo_aws: Support one new `ebs_volume_type` gp3
   - na_cloudmanager_connector_azure: Add `subnet_name` as aliases of `subnet_id`, `vnet_name` as aliases of `vnet_id`

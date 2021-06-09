@@ -292,7 +292,7 @@ class NetAppCloudmanagerVolume(object):
         # Calling generic rest_api class
         self.rest_api = netapp_utils.CloudManagerRestAPI(self.module)
         self.rest_api.token_type, self.rest_api.token = self.rest_api.get_token()
-        self.rest_api.url += "cloudmanager.cloud.netapp.com"
+        self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
