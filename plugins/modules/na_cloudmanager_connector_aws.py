@@ -142,12 +142,6 @@ options:
         description: The tag value.
         type: str
 
-  refresh_token:
-    required: true
-    description:
-    - The refresh token for NetApp Cloud Manager API operations.
-    type: str
-
 notes:
 - Support check_mode.
 '''
@@ -185,7 +179,7 @@ EXAMPLES = """
 
 RETURN = """
 ids:
-  description: Newly created Azure client ID in cloud manager, instance ID and account ID.
+  description: Newly created AWS client ID in cloud manager, instance ID and account ID.
   type: dict
   returned: success
 """
@@ -251,6 +245,8 @@ class NetAppCloudManagerConnectorAWS(object):
                 ['state', 'present', ['company', 'iam_instance_profile_name', 'key_name', 'security_group_ids', 'subnet_id']],
                 ['state', 'absent', ['instance_id', 'client_id', 'account_id']]
             ],
+            required_one_of=[['refresh_token', 'sa_client_id']],
+            required_together=[['sa_client_id', 'sa_secret_key']],
             supports_check_mode=True
         )
 

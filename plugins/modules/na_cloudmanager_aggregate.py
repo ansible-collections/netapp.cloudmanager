@@ -24,79 +24,79 @@ description:
 - Create, Modify or Delete Aggregate on Cloud Manager.
 
 options:
-    state:
-        description:
-        - Whether the specified aggregate should exist or not.
-        choices: ['present', 'absent']
-        required: true
-        type: str
+  state:
+    description:
+    - Whether the specified aggregate should exist or not.
+    choices: ['present', 'absent']
+    required: true
+    type: str
 
-    name:
-        description:
-        - The name of the new aggregate.
-        required: true
-        type: str
+  name:
+    description:
+    - The name of the new aggregate.
+    required: true
+    type: str
 
-    working_environment_name:
-        description:
-        - The working environment name where the aggregate will be created.
-        type: str
+  working_environment_name:
+    description:
+    - The working environment name where the aggregate will be created.
+    type: str
 
-    working_environment_id:
-        description:
-        - The public ID of the working environment where the aggregate will be created.
-        type: str
+  working_environment_id:
+    description:
+    - The public ID of the working environment where the aggregate will be created.
+    type: str
 
-    client_id:
-        description:
-        - The client ID of the Cloud Manager Connector.
-        required: true
-        type: str
+  client_id:
+    description:
+    - The client ID of the Cloud Manager Connector.
+    required: true
+    type: str
 
-    number_of_disks:
-        description:
-        - The required number of disks in the new aggregate.
-        type: int
+  number_of_disks:
+    description:
+    - The required number of disks in the new aggregate.
+    type: int
 
-    disk_size_size:
-        description:
-        - The required size of the disks.
-        type: int
+  disk_size_size:
+    description:
+    - The required size of the disks.
+    type: int
 
-    disk_size_unit:
-        description:
-        - The disk size unit ['GB' or 'TB']. The default is 'TB'.
-        choices: ['GB', 'TB']
-        default: 'TB'
-        type: str
+  disk_size_unit:
+    description:
+    - The disk size unit ['GB' or 'TB']. The default is 'TB'.
+    choices: ['GB', 'TB']
+    default: 'TB'
+    type: str
 
-    home_node:
-        description:
-        - The home node that the new aggregate should belong to.
-        type: str
+  home_node:
+    description:
+    - The home node that the new aggregate should belong to.
+    type: str
 
-    provider_volume_type:
-        description:
-        - The cloud provider volume type.
-        type: str
+  provider_volume_type:
+    description:
+    - The cloud provider volume type.
+    type: str
 
-    capacity_tier:
-        description:
-        - The aggregate's capacity tier for tiering cold data to object storage.
-        - If the value is NONE, the capacity_tier will not be set on aggregate creation.
-        choices: [ 'NONE', 'S3', 'Blob', 'cloudStorage']
-        type: str
+  capacity_tier:
+    description:
+    - The aggregate's capacity tier for tiering cold data to object storage.
+    - If the value is NONE, the capacity_tier will not be set on aggregate creation.
+    choices: [ 'NONE', 'S3', 'Blob', 'cloudStorage']
+    type: str
 
-    iops:
-        description:
-        - Provisioned IOPS. Needed only when providerVolumeType is "io1".
-        type: int
+  iops:
+    description:
+    - Provisioned IOPS. Needed only when providerVolumeType is "io1".
+    type: int
 
-    throughput:
-        description:
-        - Unit is Mb/s. Valid range 125-1000.
-        - Required only when provider_volume_type is 'gp3'.
-        type: int
+  throughput:
+    description:
+    - Unit is Mb/s. Valid range 125-1000.
+    - Required only when provider_volume_type is 'gp3'.
+    type: int
 
 notes:
 - Support check_mode.
@@ -168,8 +168,10 @@ class NetAppCloudmanagerAggregate(object):
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
             required_one_of=[
-                ('working_environment_name', 'working_environment_id'),
+                ['refresh_token', 'sa_client_id'],
+                ['working_environment_name', 'working_environment_id'],
             ],
+            required_together=[['sa_client_id', 'sa_secret_key']],
             required_if=[
                 ['provider_volume_type', 'gp3', ['iops', 'throughput']],
                 ['provider_volume_type', 'io1', ['iops']],

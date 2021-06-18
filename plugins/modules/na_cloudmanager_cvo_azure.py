@@ -258,12 +258,6 @@ options:
     - For HA BYOL, the serial number for the second node.
     type: str
 
-  refresh_token:
-    required: true
-    description:
-    - The refresh token for NetApp Cloud Manager API operations.
-    type: str
-
 '''
 
 EXAMPLES = """
@@ -302,6 +296,7 @@ EXAMPLES = """
   netapp.cloudmanager.na_cloudmanager_cvo_azure:
     state: absent
     name: ansible
+    refresh_token: "{{ xxxxxxxxxxxxxxx }}"
     location: westus
     subnet_id: subnet-xxxxxxx
     vnet_id: vnetxxxxxxxx
@@ -376,6 +371,8 @@ class NetAppCloudManagerCVOAZURE:
 
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
+            required_one_of=[['refresh_token', 'sa_client_id']],
+            required_together=[['sa_client_id', 'sa_secret_key']],
             supports_check_mode=True
         )
 

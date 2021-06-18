@@ -317,12 +317,6 @@ options:
     type: list
     elements: str
 
-  refresh_token:
-    required: true
-    description:
-    - The refresh token for NetApp Cloud Manager API operations.
-    type: str
-
 notes:
 - Support check_mode.
 '''
@@ -374,6 +368,7 @@ EXAMPLES = """
     state: absent
     name: ansible
     region: us-west-1
+    refresh_token: "{{ xxxxxxxxxxxxxxx }}"
     subnet_id: subnet-xxxxxxx
     vpc_id: vpc-xxxxxxxx
     svm_password: P@assword!
@@ -474,6 +469,8 @@ class NetAppCloudManagerCVOAWS:
                 ['ebs_volume_type', 'io1', ['iops']],
                 ['license_type', 'cot-premium-byol', ['platform_serial_number']],
             ],
+            required_one_of=[['refresh_token', 'sa_client_id']],
+            required_together=[['sa_client_id', 'sa_secret_key']],
             supports_check_mode=True,
         )
 

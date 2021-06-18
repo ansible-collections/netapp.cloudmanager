@@ -13,10 +13,19 @@ class ModuleDocFragment(object):
     CLOUDMANAGER = """
 options:
   refresh_token:
-    required: true
     type: str
     description:
     - The refresh token for NetApp Cloud Manager API operations.
+
+  sa_secret_key:
+    type: str
+    description:
+    - The service account secret key for NetApp Cloud Manager API operations.
+
+  sa_client_id:
+    type: str
+    description:
+    - The service account secret client ID for NetApp Cloud Manager API operations.
 
   environment:
     type: str
@@ -27,4 +36,5 @@ options:
     version_added: 21.8.0
 notes:
   - The modules prefixed with na_cloudmanager are built to manage CloudManager and CVO deployments in AWS/GCP/Azure clouds.
+  - If sa_client_id and sa_secret_key are provided, service account will be used in operations. refresh_token will be ignored.
 """

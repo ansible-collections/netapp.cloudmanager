@@ -191,10 +191,12 @@ class NetAppCloudmanagerSnapmirror:
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
             required_one_of=[
-                ('source_working_environment_id', 'source_working_environment_name'),
+                ['source_working_environment_id', 'source_working_environment_name'],
+                ['refresh_token', 'sa_client_id'],
             ],
             required_together=(['source_working_environment_id', 'destination_working_environment_id'],
                                ['source_working_environment_name', 'destination_working_environment_name'],
+                               ['sa_client_id', 'sa_secret_key'],
                                ),
             supports_check_mode=True
         )

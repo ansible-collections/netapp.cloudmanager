@@ -152,8 +152,10 @@ class NetAppCloudmanagerCifsServer:
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
             required_one_of=[
-                ('working_environment_name', 'working_environment_id'),
+                ['refresh_token', 'sa_client_id'],
+                ['working_environment_name', 'working_environment_id'],
             ],
+            required_together=[['sa_client_id', 'sa_secret_key']],
             mutually_exclusive=[
                 ('domain', 'server_name'),
                 ('dns_domain', 'server_name'),

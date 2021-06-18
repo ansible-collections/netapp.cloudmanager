@@ -45,6 +45,7 @@ COLLECTION_VERSION = "21.8.0"
 PROD_ENVIRONMENT = {
     'CLOUD_MANAGER_HOST': 'cloudmanager.cloud.netapp.com',
     'AUTH0_DOMAIN': 'netapp-cloud-account.auth0.com',
+    'SA_AUTH_HOST': 'https://cloudmanager.cloud.netapp.com/auth/oauth/token',
     'AUTH0_CLIENT': 'Mu0V1ywgYteI6w1MbD15fKfVIUrNXGWC',
     'AMI_FILTER': 'Setup-As-Service-AMI-Prod*',
     'AWS_ACCOUNT': '952013314444',
@@ -55,6 +56,7 @@ PROD_ENVIRONMENT = {
 STAGE_ENVIRONMENT = {
     'CLOUD_MANAGER_HOST': 'staging.cloudmanager.cloud.netapp.com',
     'AUTH0_DOMAIN': 'staging-netapp-cloud-account.auth0.com',
+    'SA_AUTH_HOST': 'https://staging.cloudmanager.cloud.netapp.com/auth/oauth/token',
     'AUTH0_CLIENT': 'O6AHa7kedZfzHaxN80dnrIcuPBGEUvEv',
     'AMI_FILTER': 'Setup-As-Service-AMI-*',
     'AWS_ACCOUNT': '282316784512',
@@ -88,7 +90,9 @@ POW2_BYTE_MAP = dict(
 def cloudmanager_host_argument_spec():
 
     return dict(
-        refresh_token=dict(required=True, type='str', no_log=True),
+        refresh_token=dict(required=False, type='str', no_log=True),
+        sa_client_id=dict(required=False, type='str', no_log=True),
+        sa_secret_key=dict(required=False, type='str', no_log=True),
         environment=dict(required=False, type='str', choices=['prod', 'stage'], default='prod')
     )
 
@@ -99,6 +103,8 @@ class CloudManagerRestAPI(object):
         self.module = module
         self.timeout = timeout
         self.refresh_token = self.module.params['refresh_token']
+        self.sa_client_id = self.module.params['sa_client_id']
+        self.sa_secret_key = self.module.params['sa_secret_key']
         self.environment = self.module.params['environment']
         if self.environment == 'prod':
             self.environment_data = PROD_ENVIRONMENT
@@ -190,9 +196,18 @@ class CloudManagerRestAPI(object):
         return self.send_request(method=method, api=api, params=params, json=data, header=header)
 
     def get_token(self):
-        token_res = requests.post('https://' + self.environment_data['AUTH0_DOMAIN'] + '/oauth/token',
-                                  json={"grant_type": "refresh_token", "refresh_token": self.refresh_token,
-                                        "client_id": self.environment_data['AUTH0_CLIENT'], "audience": "https://api.cloud.netapp.com"})
+        if self.sa_client_id is not None and self.sa_client_id != "" and self.sa_secret_key is not None and self.sa_secret_key != "":
+            token_res = requests.post(self.environment_data['SA_AUTH_HOST'],
+                                      json={"grant_type": "client_credentials", "client_secret": self.sa_secret_key,
+                                            "client_id": self.sa_client_id, "audience": "https://api.cloud.netapp.com"})
+        elif self.refresh_token is not None and self.refresh_token != "":
+            token_res = requests.post('https://' + self.environment_data['AUTH0_DOMAIN'] + '/oauth/token',
+                                      json={"grant_type": "refresh_token", "refresh_token": self.refresh_token,
+                                            "client_id": self.environment_data['AUTH0_CLIENT'],
+                                            "audience": "https://api.cloud.netapp.com"})
+        else:
+            self.module.fail_json(msg='Missing refresh_token or sa_client_id and sa_secret_key')
+
         token_dict = token_res.json()
         token = token_dict['access_token']
         token_type = token_dict['token_type']

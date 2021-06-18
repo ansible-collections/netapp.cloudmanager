@@ -470,6 +470,8 @@ class NetAppCloudManagerCVOGCP:
 
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
+            required_one_of=[['refresh_token', 'sa_client_id']],
+            required_together=[['sa_client_id', 'sa_secret_key']],
             supports_check_mode=True
         )
         self.na_helper = NetAppModule()

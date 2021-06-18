@@ -229,7 +229,8 @@ class NetAppCloudManagerConnectorGCP(object):
             required_if=[
                 ['state', 'absent', ['client_id']]
             ],
-
+            required_one_of=[['refresh_token', 'sa_client_id']],
+            required_together=[['sa_client_id', 'sa_secret_key']],
             supports_check_mode=True
         )
         self.na_helper = NetAppModule()

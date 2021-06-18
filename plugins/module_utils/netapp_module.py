@@ -400,7 +400,7 @@ class NetAppModule(object):
         :param exclusion: list of parameters to be ignored.
         :return: dict of key value pairs.
         '''
-        exclude_list = ['api_url', 'token_type', 'refresh_token']
+        exclude_list = ['api_url', 'token_type', 'refresh_token', 'sa_secret_key', 'sa_client_id']
         if exclusion is not None:
             exclude_list += exclusion
         api_keys = dict()
