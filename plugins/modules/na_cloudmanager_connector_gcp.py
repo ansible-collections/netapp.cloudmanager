@@ -449,7 +449,7 @@ class NetAppCloudManagerConnectorGCP(object):
             'Authorization': self.rest_api.token_type + " " + self.rest_api.gcp_token,
             'Content-type': "application/json",
             'Referer': "Ansible_NetApp",
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
+            'X-Agent-Id': self.rest_api.format_cliend_id(self.parameters['client_id'])
         }
 
         response, error, dummy = self.rest_api.post(api_url, data=gcp_deployment_template, header=headers,

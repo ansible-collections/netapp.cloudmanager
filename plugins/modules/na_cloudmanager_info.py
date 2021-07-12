@@ -161,7 +161,7 @@ class NetAppCloudmanagerInfo(object):
             accounts_info=self.na_helper.get_accounts_info,
         )
         self.headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
+            'X-Agent-Id': self.rest_api.format_cliend_id(self.parameters['client_id'])
         }
 
     def get_aggregates_info(self, rest_api, headers):

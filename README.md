@@ -35,6 +35,9 @@ https://github.com/ansible-collections/netapp/wiki
   - Adding stage environment to all modules in cloudmanager
   - Adding service account support on API operations in cloudmanager: `sa_client_id` and `sa_secret_key`. `refresh_token` will be ignored if service account information is provided.
 
+### Bug Fixes
+  - Accept client_id end with or without 'clients'
+
 ## 21.7.0
 
 ### New Options

@@ -440,13 +440,13 @@ class NetAppModule(object):
             return base64.b64encode(cert), None
 
     @staticmethod
-    def check_occm_status(host, rest_api, client):
+    def check_occm_status(host, rest_api, client_id):
         """
         Check OCCM status
         :return: status
         """
 
-        get_occum_url = host + "/agents-mgmt/agent/" + client + "clients"
+        get_occum_url = host + "/agents-mgmt/agent/" + rest_api.format_cliend_id(client_id)
         headers = {
             "X-User-Token": rest_api.token_type + " " + rest_api.token,
         }
@@ -487,11 +487,11 @@ class NetAppModule(object):
         response, error, dummy = rest_api.post(api_url, body, header=headers)
         return response, error
 
-    def delete_occm(self, host, rest_api, client):
+    def delete_occm(self, host, rest_api, client_id):
         '''
         delete occm
         '''
-        api_url = host + '/agents-mgmt/agent/' + client + 'clients'
+        api_url = host + '/agents-mgmt/agent/' + rest_api.format_cliend_id(client_id)
         headers = {
             "X-User-Token": rest_api.token_type + " " + rest_api.token,
             "X-Tenancy-Account-Id": self.parameters['account_id'],

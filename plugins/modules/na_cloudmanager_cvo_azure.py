@@ -381,7 +381,7 @@ class NetAppCloudManagerCVOAZURE:
 
         self.rest_api = CloudManagerRestAPI(self.module)
         self.headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
+            'X-Agent-Id': self.rest_api.format_cliend_id(self.parameters['client_id'])
         }
 
     def get_working_environment(self):

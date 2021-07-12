@@ -119,6 +119,9 @@ class CloudManagerRestAPI(object):
         if not HAS_REQUESTS:
             self.module.fail_json(msg=missing_required_lib('requests'))
 
+    def format_cliend_id(self, client_id):
+        return client_id if client_id.endswith('clients') else client_id + 'clients'
+
     def send_request(self, method, api, params, json=None, data=None, header=None):
         ''' send http request and process response, including error conditions '''
         if params is not None:
@@ -232,9 +235,8 @@ class CloudManagerRestAPI(object):
             retries = retries - 1
 
     def check_task_status(self, api_url):
-
         headers = {
-            'X-Agent-Id': self.module.params['client_id'] + "clients"
+            'X-Agent-Id': self.format_cliend_id(self.module.params['client_id'])
         }
 
         network_retries = 3
