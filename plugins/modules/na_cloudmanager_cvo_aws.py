@@ -326,7 +326,7 @@ EXAMPLES = """
   netapp.cloudmanager.na_cloudmanager_cvo_aws:
     state: present
     refresh_token: "{{ xxxxxxxxxxxxxxx }}"
-    name: TerraformCVO
+    name: AnsibleCVO
     region: us-west-1
     subnet_id: subnet-xxxxxxx
     vpc_id: vpc-xxxxxxxx
@@ -341,7 +341,7 @@ EXAMPLES = """
   netapp.cloudmanager.na_cloudmanager_cvo_aws:
     state: present
     refresh_token: "{{ xxxxxxxxxxxxxxx }}"
-    name: TerraformCVO
+    name: AnsibleCVO
     region: us-west-1
     subnet_id: subnet-xxxxxxx
     vpc_id: vpc-xxxxxxxx
