@@ -5,6 +5,35 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.8.0
+=======
+
+Major Changes
+-------------
+
+- Adding stage environment to all modules in cloudmanager
+
+Minor Changes
+-------------
+
+- na_cloudmanager - Support service account with new options ``sa_client_id`` and ``sa_secret_key`` to use for API operations.
+
+Bugfixes
+--------
+
+- na_cloudmanager_aggregate - accept client_id end with or without 'clients'
+- na_cloudmanager_cifs_server - accept client_id end with or without 'clients'
+- na_cloudmanager_connector_aws - accept client_id end with or without 'clients'
+- na_cloudmanager_connector_azure - accept client_id end with or without 'clients'
+- na_cloudmanager_connector_gcp - accept client_id end with or without 'clients'
+- na_cloudmanager_cvo_aws - accept client_id end with or without 'clients'
+- na_cloudmanager_cvo_azure - accept client_id end with or without 'clients'
+- na_cloudmanager_cvo_gcp - accept client_id end with or without 'clients'
+- na_cloudmanager_info - accept client_id end with or without 'clients'
+- na_cloudmanager_nss_account - accept client_id end with or without 'clients'
+- na_cloudmanager_snapmirror - accept client_id end with or without 'clients'
+- na_cloudmanager_volume - accept client_id end with or without 'clients'
+
 v21.7.0
 =======
 
