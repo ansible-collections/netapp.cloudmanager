@@ -40,10 +40,10 @@ options:
 
   virtual_machine_size:
     description:
-    - The virtual machine type. (for example, Standard_D2s_v3).
+    - The virtual machine type. (for example, Standard_DS3_v2).
     - At least 4 CPU and 16 GB of memory are required.
     type: str
-    default: Standard_D2s_v3
+    default: Standard_DS3_v2
 
   resource_group:
     required: true
@@ -245,7 +245,7 @@ class NetAppCloudManagerConnectorAzure(object):
         self.argument_spec.update(dict(
             name=dict(required=True, type='str'),
             state=dict(required=False, choices=['present', 'absent'], default='present'),
-            virtual_machine_size=dict(required=False, type='str', default='Standard_D2s_v3'),
+            virtual_machine_size=dict(required=False, type='str', default='Standard_DS3_v2'),
             resource_group=dict(required=True, type='str'),
             subscription_id=dict(required=True, type='str'),
             subnet_name=dict(required=True, type='str', aliases=['subnet_id']),

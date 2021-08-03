@@ -38,6 +38,7 @@ https://github.com/ansible-collections/netapp/wiki
 
 ### Bug Fixes
   - Accept client_id end with or without 'clients'
+  - Change `virtual_machine_size` default value to Standard_DS3_v2
 
 ## 21.7.0
 
