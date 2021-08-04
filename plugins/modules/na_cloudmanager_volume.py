@@ -75,7 +75,7 @@ options:
         - The underlying cloud provider volume type.
         - For AWS is ["gp3", "gp2", "io1", "st1", "sc1"].
         - For Azure is ['Premium_LRS','Standard_LRS','StandardSSD_LRS'].
-        - For GCP is ['pd-ssd','pd-standard'].
+        - For GCP is ['pd-balanced','pd-ssd','pd-standard'].
         type: str
 
     enable_deduplication:

@@ -105,7 +105,7 @@ options:
     - The underlying cloud provider volume type.
     - For AWS ['gp3', 'gp2', 'io1', 'st1', 'sc1'].
     - For Azure ['Premium_LRS','Standard_LRS','StandardSSD_LRS'].
-    - For GCP ['pd-ssd','pd-standard'].
+    - For GCP ['pd-balanced','pd-ssd','pd-standard'].
     type: str
 
   capacity_tier:

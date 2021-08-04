@@ -93,7 +93,7 @@ options:
   gcp_volume_type:
     description:
     - GCP volume type.
-    choices: ['pd-standard', 'pd-ssd']
+    choices: ['pd-balanced', 'pd-standard', 'pd-ssd']
     type: str
 
   instance_type:
@@ -429,7 +429,7 @@ class NetAppCloudManagerCVOGCP:
             gcp_service_account=dict(required=True, type='str'),
             gcp_volume_size=dict(required=False, type='int'),
             gcp_volume_size_unit=dict(required=False, choices=['GB', 'TB'], type='str'),
-            gcp_volume_type=dict(required=False, choices=['pd-standard', 'pd-ssd'], type='str'),
+            gcp_volume_type=dict(required=False, choices=['pd-balanced', 'pd-standard', 'pd-ssd'], type='str'),
             instance_type=dict(required=False, type='str', default='n1-standard-8'),
             is_ha=dict(required=False, type='bool', default=False),
             license_type=dict(required=False, type='str', choices=GCP_LICENSE_TYPES, default='gcp-cot-standard-paygo'),

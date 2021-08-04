@@ -35,6 +35,7 @@ https://github.com/ansible-collections/netapp/wiki
   - Adding stage environment to all modules in cloudmanager
   - Adding service account support on API operations in cloudmanager: `sa_client_id` and `sa_secret_key`. `refresh_token` will be ignored if service account information is provided.
   - Adding selflink support on CVO GCP params: `subnet_id`, `vpc0_node_and_data_connectivity`, `vpc1_cluster_connectivity`, `vpc2_ha_connectivity`, `vpc3_data_replication`, `subnet0_node_and_data_connectivity`, `subnet1_cluster_connectivity`, `subnet2_ha_connectivity`, and `subnet3_data_replication`.
+  - Adding pd-balanced support on ``gcp_volume_type`` CVO GCP and ``provider_volume_type`` for na_cloudmanager_snapmirror and na_cloudmanager_volume.
 
 ### Bug Fixes
   - Accept client_id end with or without 'clients'
