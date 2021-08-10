@@ -28,6 +28,10 @@ This collection follows the [Ansible project's Code of Conduct](https://docs.ans
 https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
+## 21.10.0
+
+## New Options
+  - Adding new parameter `ha_enable_https` for HA CVO to enable the HTTPS connection from CVO to storage accounts. This can impact write performance. The default is false.
 
 ## 21.9.0
 

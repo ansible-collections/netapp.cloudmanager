@@ -258,6 +258,12 @@ options:
     - For HA BYOL, the serial number for the second node.
     type: str
 
+  ha_enable_https:
+    description:
+    - For HA, enable the HTTPS connection from CVO to storage accounts. This can impact write performance. The default is false.
+    type: bool
+    version_added: 21.10.0
+
 '''
 
 EXAMPLES = """
@@ -367,6 +373,7 @@ class NetAppCloudManagerCVOAZURE:
             is_ha=dict(required=False, type='bool', default=False),
             platform_serial_number_node1=dict(required=False, type='str'),
             platform_serial_number_node2=dict(required=False, type='str'),
+            ha_enable_https=dict(required=False, type='bool'),
         ))
 
         self.module = AnsibleModule(
@@ -520,6 +527,9 @@ class NetAppCloudManagerCVOAZURE:
 
             if self.parameters.get('platform_serial_number_node2'):
                 ha_params["platformSerialNumberNode2"] = self.parameters['platform_serial_number_node2']
+
+            if self.parameters.get('ha_enable_https') is not None:
+                ha_params['enableHttps'] = self.parameters['ha_enable_https']
 
             json["haParams"] = ha_params
 
