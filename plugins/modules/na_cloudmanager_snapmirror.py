@@ -360,7 +360,6 @@ class NetAppCloudmanagerSnapmirror:
         return response
 
     def get_volumes_on_prem(self, working_environment_detail, name):
-        self.na_helper.set_api_root_path(working_environment_detail, self.rest_api)
         response, err, dummy = self.rest_api.send_request("GET", "/occm/api/onprem/volumes?workingEnvironmentId=%s&name=%s" %
                                                           (working_environment_detail['publicId'], name), None, header=self.headers)
         if err is not None:
