@@ -30,11 +30,17 @@ https://github.com/ansible-collections/netapp/wiki
 # Release Notes
 ## 21.10.0
 
+### Minor Changes
+  - Adding support update on `svm_password`, `tier_level`, `aws_tag`, `azure_tag` and `gcp_labels` for all CVOs. Only these parameters will be modified on the existing CVOs.
+
 ### Bug Fixes
   - na_cloudmanager_snapmirror - key error CloudProviderName for ONPREM operation
 
 ## New Options
   - Adding new parameter `ha_enable_https` for HA CVO to enable the HTTPS connection from CVO to storage accounts. This can impact write performance. The default is false.
+  - Adding new parameters `kms_key_id` and `kms_key_arn` as AWS encryption parameters for AWS CVO encryption.
+  - Adding new parameter `azure_encryption_parameters` for AZURE CVO encryption.
+  - Adding new parameter `gcp_encryption_parameters` for GCP CVO encryption.
 
 ## 21.9.0
 

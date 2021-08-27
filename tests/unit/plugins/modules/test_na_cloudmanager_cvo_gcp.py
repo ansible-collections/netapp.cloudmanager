@@ -123,20 +123,20 @@ class TestMyModule(unittest.TestCase):
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_gcp.NetAppCloudManagerCVOGCP.get_tenant')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_gcp.NetAppCloudManagerCVOGCP.get_nss')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_gcp.NetAppCloudManagerCVOGCP.get_working_environment')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
-    def test_create_cloudmanager_cvo_gcp_pass(self, get_post_api, get_working_environment, get_nss, get_tenant, wait_on_completion, get_token):
+    def test_create_cloudmanager_cvo_gcp_pass(self, get_post_api, get_working_environment_details_by_name, get_nss, get_tenant, wait_on_completion, get_token):
         set_module_args(self.set_args_create_cloudmanager_cvo_gcp())
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
 
         response = {'publicId': 'abcdefg12345'}
         get_post_api.return_value = response, None, None
-        get_working_environment.return_value = None
-        get_nss.return_value = 'nss-test'
-        get_tenant.return_value = 'test'
+        get_working_environment_details_by_name.return_value = None, None
+        get_nss.return_value = 'nss-test', None
+        get_tenant.return_value = 'test', None
         wait_on_completion.return_value = None
 
         with pytest.raises(AnsibleExitJson) as exc:
@@ -146,11 +146,12 @@ class TestMyModule(unittest.TestCase):
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_gcp.NetAppCloudManagerCVOGCP.get_tenant')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_gcp.NetAppCloudManagerCVOGCP.get_nss')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_gcp.NetAppCloudManagerCVOGCP.get_working_environment')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
-    def test_create_cloudmanager_cvo_gcp_ha_pass(self, get_post_api, get_working_environment, get_nss, get_tenant, wait_on_completion, get_token):
+    def test_create_cloudmanager_cvo_gcp_ha_pass(self, get_post_api, get_working_environment_details_by_name, get_nss,
+                                                 get_tenant, wait_on_completion, get_token):
         data = self.set_args_create_cloudmanager_cvo_gcp()
         data['is_ha'] = True
         data['subnet0_node_and_data_connectivity'] = 'default'
@@ -167,9 +168,9 @@ class TestMyModule(unittest.TestCase):
 
         response = {'publicId': 'abcdefg12345'}
         get_post_api.return_value = response, None, None
-        get_working_environment.return_value = None
-        get_nss.return_value = 'nss-test'
-        get_tenant.return_value = 'test'
+        get_working_environment_details_by_name.return_value = None, None
+        get_nss.return_value = 'nss-test', None
+        get_tenant.return_value = 'test', None
         wait_on_completion.return_value = None
 
         with pytest.raises(AnsibleExitJson) as exc:

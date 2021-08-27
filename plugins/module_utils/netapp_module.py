@@ -126,7 +126,7 @@ class NetAppModule(object):
         api = "/occm/api/working-environments"
         response, error, dummy = rest_api.get(api, None, header=headers)
         if error is not None:
-            return None, error
+            return response, error
         else:
             return response, None
 
@@ -135,11 +135,11 @@ class NetAppModule(object):
         Look up working environment by the name in working environment list
         '''
         for we in we_list:
-            if we['name'] == self.parameters[name]:
+            if we['name'] == name:
                 return we, None
         return None, "Working environment not found"
 
-    def get_working_environment_details_by_name(self, rest_api, headers, name='working_environment_name'):
+    def get_working_environment_details_by_name(self, rest_api, headers, name='working_environment_name', provider=None):
         '''
         Use working environment name to get working environment details including:
         name: working environment name,
@@ -149,7 +149,7 @@ class NetAppModule(object):
         svmName
         '''
         # check the working environment exist or not
-        api = "/occm/api/working-environments/exists/" + self.parameters[name]
+        api = "/occm/api/working-environments/exists/" + name
         response, error, dummy = rest_api.get(api, None, header=headers)
         if error is not None:
             return None, error
@@ -160,18 +160,22 @@ class NetAppModule(object):
         if error is not None:
             return None, error
         # look up the working environment in the working environment lists
-        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['onPremWorkingEnvironments'], name)
-        if error is None:
-            return working_environment_details, None
-        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['gcpVsaWorkingEnvironments'], name)
-        if error is None:
-            return working_environment_details, None
-        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['azureVsaWorkingEnvironments'], name)
-        if error is None:
-            return working_environment_details, None
-        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['vsaWorkingEnvironments'], name)
-        if error is None:
-            return working_environment_details, None
+        if provider is None or provider == 'onPrem':
+            working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['onPremWorkingEnvironments'], name)
+            if error is None:
+                return working_environment_details, None
+        if provider is None or provider == 'gcp':
+            working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['gcpVsaWorkingEnvironments'], name)
+            if error is None:
+                return working_environment_details, None
+        if provider is None or provider == 'azure':
+            working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['azureVsaWorkingEnvironments'], name)
+            if error is None:
+                return working_environment_details, None
+        if provider is None or provider == 'aws':
+            working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['vsaWorkingEnvironments'], name)
+            if error is None:
+                return working_environment_details, None
         return None, "Working environment not found"
 
     def get_working_environment_details(self, rest_api, headers):
@@ -725,3 +729,160 @@ class NetAppModule(object):
         }
     }
     """
+
+    def get_tenant(self, rest_api, headers):
+        """
+        Get workspace ID (tenant)
+        """
+        api_url = '/occm/api/tenants'
+        response, error, dummy = rest_api.get(api_url, header=headers)
+        if error is not None:
+            return None, 'Error: unexpected response on getting tenant for cvo: %s, %s' % (str(error), str(response))
+
+        return response[0]['publicId'], None
+
+    def get_nss(self, rest_api, headers):
+        """
+        Get nss account
+        """
+        api_url = '/occm/api/accounts'
+        response, error, dummy = rest_api.get(api_url, header=headers)
+        if error is not None:
+            return None, 'Error: unexpected response on getting nss for cvo: %s, %s' % (str(error), str(response))
+
+        if len(response['nssAccounts']) == 0:
+            return None, "Error: could not find any NSS account"
+
+        return response['nssAccounts'][0]['publicId'], None
+
+    def get_working_environment_property(self, rest_api, headers):
+        # GET /vsa/working-environments/{workingEnvironmentId}?fields=status,awsProperties,ontapClusterProperties
+        api = '%s/working-environments/%s' % (rest_api.api_root_path, self.parameters['working_environment_id'])
+        api += '?fields=status,providerProperties,ontapClusterProperties'
+        response, error, dummy = rest_api.get(api, None, header=headers)
+        if error:
+            return None, error
+        return response, None
+
+    def compare_cvo_tags_labels(self, current_tags, user_tags, tag_name):
+        '''
+        Compare exiting tags/labels and user input tags/labels to see if there is a change
+        gcp_labels: label_key, label_value
+        aws_tag/azure_tag: tag_key, tag_label
+        '''
+        if len(user_tags) != len(current_tags):
+            return True
+        tag_label_prefix = 'tag' if tag_name != 'gcp_labels' else 'label'
+        tkey = tag_label_prefix + '_key'
+        tvalue = tag_label_prefix + '_value'
+        # Check if tags/labels of desired configuration in current working environment
+        for item in user_tags:
+            if item[tkey] in current_tags and item[tvalue] != current_tags[item[tkey]]:
+                return True
+            elif item[tkey] not in current_tags:
+                return True
+        return False
+
+    def is_cvo_tags_changed(self, rest_api, headers, parameters, tag_name):
+        '''
+        Since tags/laabels are CVO optional parameters, this function needs to cover with/without tags/labels on both lists
+        '''
+        # get working environment details by working environment ID
+        current, error = self.get_working_environment_details(rest_api, headers)
+        if error is not None:
+            return 'Error:  Cannot find working environment %s error: %s' % (self.parameters['working_environment_id'], str(error))
+        self.set_api_root_path(current, rest_api)
+        # compare tags
+        # no tags in current cvo
+        if 'userTags' not in current:
+            return tag_name in parameters
+
+        # no tags in input parameters
+        if tag_name not in parameters:
+            return True
+        else:
+            # has tags in input parameters and existing CVO
+            return self.compare_cvo_tags_labels(current['userTags'], parameters[tag_name], tag_name)
+
+    def get_modify_cvo_params(self, rest_api, headers, desired, provider):
+        modified = ['svm_password']
+        # Get current working environment property
+        we, err = self.get_working_environment_property(rest_api, headers)
+        tier_level = we['ontapClusterProperties']['capacityTierInfo']['tierLevel']
+
+        # collect changed attributes
+        if provider == 'azure':
+            if desired['capacity_tier'] == 'Blob' and tier_level != desired['tier_level']:
+                modified.append('tier_level')
+        else:
+            if tier_level != desired['tier_level']:
+                modified.append('tier_level')
+
+        if provider == 'aws' and self.is_cvo_tags_changed(rest_api, headers, desired, 'aws_tag'):
+            modified.append('aws_tag')
+        if provider == 'azure' and self.is_cvo_tags_changed(rest_api, headers, desired, 'azure_tag'):
+            modified.append('azure_tag')
+        if provider == 'gcp' and self.is_cvo_tags_changed(rest_api, headers, desired, 'gcp_labels'):
+            modified.append('gcp_labels')
+
+        # The updates of followings are not supported. Will response failure.
+        for key, value in desired.items():
+            if key == 'project_id' and we['providerProperties']['projectName'] != value:
+                modified.append('project_id')
+            if key == 'zone' and we['providerProperties']['zoneName'][0] != value:
+                modified.append('zone')
+            if key == 'writing_speed_state' and we['ontapClusterProperties']['writingSpeedState'] is not None and \
+                    we['ontapClusterProperties']['writingSpeedState'] != value:
+                modified.append('writing_speed_state')
+            if key == 'cidr' and we['providerProperties']['vnetCidr'] != value:
+                modified.append('cidr')
+            if key == 'location' and we['providerProperties']['regionName'] != value:
+                modified.append('location')
+
+        if modified:
+            self.changed = True
+        return modified
+
+    def is_cvo_update_needed(self, rest_api, headers, parameters, changeable_params, provider):
+        modify = self.get_modify_cvo_params(rest_api, headers, parameters, provider)
+        unmodifiable = [attr for attr in modify if attr not in changeable_params]
+        if len(unmodifiable) > 0:
+            return None, "%s cannot be modified." % str(unmodifiable)
+        else:
+            return modify, None
+
+    def update_cvo_tags(self, base_url, rest_api, headers, tag_name, tag_list):
+        body = {}
+        tags = []
+        if tag_list is not None:
+            for tag in tag_list:
+                atag = {
+                    'tagKey': tag['label_key'] if tag_name == "gcp_labels" else tag['tag_key'],
+                    'tagValue': tag['label_value'] if tag_name == "gcp_labels" else tag['tag_value']
+                }
+                tags.append(atag)
+        body['tags'] = tags
+
+        response, err, dummy = rest_api.put(base_url + "user-tags", body, header=headers)
+        if err is not None:
+            return False, 'Error: unexpected response on modifying tags: %s, %s' % (str(err), str(response))
+        else:
+            return True, None
+
+    def update_svm_password(self, base_url, rest_api, headers, svm_password):
+        body = dict()
+        body['password'] = svm_password
+        response, err, dummy = rest_api.put(base_url + "set-password", body, header=headers)
+        if err is not None:
+            return False, 'Error: unexpected response on modifying svm_password: %s, %s' % (str(err), str(response))
+        else:
+            return True, None
+
+    def update_tier_level(self, base_url, rest_api, headers, tier_level):
+        body = dict()
+        body['level'] = tier_level
+        response, err, dummy = rest_api.post(base_url + "change-tier-level", body, header=headers)
+        if err is not None:
+            return False, 'Error: unexpected response on modify tier_level: %s, %s' % (str(err), str(response))
+        else:
+            return True, None

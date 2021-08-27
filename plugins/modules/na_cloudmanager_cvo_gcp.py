@@ -20,7 +20,7 @@ version_added: '21.4.0'
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 
 description:
-- Create or delete Cloud Manager CVO for GCP.
+- Create, delete, or manage Cloud Manager CVO for GCP.
 
 options:
 
@@ -48,6 +48,12 @@ options:
     - Type of encryption to use for this working environment.
     choices: ['GCP']
     type: str
+
+  gcp_encryption_parameters:
+    description:
+    - The GCP encryption parameters.
+    type: str
+    version_added: 21.10.0
 
   enable_compliance:
     description:
@@ -228,6 +234,7 @@ options:
   svm_password:
     description:
     - The admin password for Cloud Volumes ONTAP.
+    - It will be updated on each run.
     type: str
 
   tier_level:
@@ -420,6 +427,7 @@ class NetAppCloudManagerCVOGCP:
             capacity_tier=dict(required=False, type='str', choices=['cloudStorage']),
             client_id=dict(required=True, type='str'),
             data_encryption_type=dict(required=False, choices=['GCP'], type='str'),
+            gcp_encryption_parameters=dict(required=False, type='str', no_log=True),
             enable_compliance=dict(required=False, type='bool', default=False),
             firewall_rule=dict(required=False, type='str'),
             gcp_labels=dict(required=False, type='list', elements='dict', options=dict(
@@ -476,40 +484,13 @@ class NetAppCloudManagerCVOGCP:
         )
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-
+        self.changeable_params = ['svm_password', 'tier_level', 'gcp_labels']
         self.rest_api = CloudManagerRestAPI(self.module)
+        self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
+        self.rest_api.api_root_path = '/occm/api/gcp/%s' % ('ha' if self.parameters['is_ha'] else 'vsa')
         self.headers = {
             'X-Agent-Id': self.rest_api.format_cliend_id(self.parameters['client_id'])
         }
-
-    def get_tenant(self):
-        """
-        Get workspace ID (tenant)
-        """
-
-        api_url = '%s/occm/api/tenants' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
-        response, error, dummy = self.rest_api.get(api_url, header=self.headers)
-        if error is not None:
-            self.module.fail_json(
-                msg="Error: unexpected response on getting tenant for gcp cvo: %s, %s" % (str(error), str(response)))
-
-        return response[0]['publicId']
-
-    def get_nss(self):
-        """
-        Get nss account
-        """
-
-        api_url = '%s/occm/api/accounts' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
-        response, error, dummy = self.rest_api.get(api_url, header=self.headers)
-        if error is not None:
-            self.module.fail_json(
-                msg="Error: unexpected response on getting nss for gcp cvo: %s, %s" % (str(error), str(response)))
-
-        if len(response['nssAccounts']) == 0:
-            self.module.fail_json(msg="could not find any NSS account")
-
-        return response['nssAccounts'][0]['publicId']
 
     @staticmethod
     def has_self_link(param):
@@ -518,13 +499,19 @@ class NetAppCloudManagerCVOGCP:
     def create_cvo_gcp(self):
 
         if self.parameters.get('workspace_id') is None:
-            self.parameters['workspace_id'] = self.get_tenant()
+            response, msg = self.na_helper.get_tenant(self.rest_api, self.headers)
+            if response is None:
+                self.module.fail_json(msg)
+            self.parameters['workspace_id'] = response
 
         if self.parameters.get('nss_account') is None:
             if self.parameters.get('platform_serial_number') is not None:
                 if not self.parameters['platform_serial_number'].startswith('Eval-'):
                     if self.parameters['license_type'] == 'gcp-cot-premium-byol' or self.parameters['license_type'] == 'gcp-ha-cot-premium-byol':
-                        self.parameters['nss_account'] = self.get_nss()
+                        response, msg = self.na_helper.get_nss(self.rest_api, self.headers)
+                        if response is None:
+                            self.module.fail_json(msg)
+                        self.parameters['nss_account'] = response
 
         json = {"name": self.parameters['name'],
                 "region": self.parameters['zone'],
@@ -545,8 +532,10 @@ class NetAppCloudManagerCVOGCP:
                     "instanceType": self.parameters['instance_type']}
                 }
 
-        if self.parameters.get('data_encryption_type'):
+        if self.parameters.get('data_encryption_type') is not None and self.parameters['data_encryption_type'] == "GCP":
             json.update({'dataEncryptionType': self.parameters['data_encryption_type']})
+            if self.parameters.get('gcp_encryption_parameters') is not None:
+                json.update({"gcpEncryptionParameters": {"key": self.parameters['gcp_encryption_parameters']}})
 
         if self.parameters.get('use_latest_version') is not None:
             json['vsaMetadata'].update({'useLatestVersion': self.parameters['use_latest_version']})
@@ -682,69 +671,76 @@ class NetAppCloudManagerCVOGCP:
 
             json["haParams"] = ha_params
 
-        base_url = '/occm/api/gcp/vsa/working-environments'
-        if self.parameters.get('is_ha'):
-            base_url = '/occm/api/gcp/ha/working-environments'
-
-        api_url = '%s%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], base_url)
+        api_url = '%s/working-environments' % self.rest_api.api_root_path
         response, error, on_cloud_request_id = self.rest_api.post(api_url, json, header=self.headers)
         if error is not None:
             self.module.fail_json(
                 msg="Error: unexpected response on creating cvo gcp: %s, %s" % (str(error), str(response)))
         working_environment_id = response['publicId']
-        wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], str(on_cloud_request_id))
+        wait_on_completion_api_url = '/occm/api/audit/activeTask/%s' % str(on_cloud_request_id)
         err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "CVO", "create", 60, 60)
 
         if err is not None:
             self.module.fail_json(msg="Error: unexpected response wait_on_completion for creating CVO GCP: %s" % str(err))
         return working_environment_id
 
-    def get_working_environment(self):
-        """
-        Get working environment details including:
-        name: working environment name
-        """
-        api_url = '%s/occm/api/working-environments' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
-        response, error, dummy = self.rest_api.get(api_url, header=self.headers)
-        if error is not None:
-            self.module.fail_json(
-                msg="Error: unexpected response on getting gcp cvo: %s, %s" % (str(error), str(response)))
-
-        for each in response['gcpVsaWorkingEnvironments']:
-            if each['name'] == self.parameters['name']:
-                return each
-
-        return None
+    def update_cvo_gcp(self, working_environment_id, modify):
+        base_url = '%s/working-environments/%s/' % (self.rest_api.api_root_path, working_environment_id)
+        for item in modify:
+            if item == 'svm_password':
+                response, error = self.na_helper.update_svm_password(base_url, self.rest_api, self.headers, self.parameters['svm_password'])
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
+            if item == 'gcp_labels':
+                tag_list = None
+                if 'gcp_labels' in self.parameters:
+                    tag_list = self.parameters['gcp_labels']
+                response, error = self.na_helper.update_cvo_tags(base_url, self.rest_api, self.headers, 'gcp_labels', tag_list)
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
+            if item == 'tier_level':
+                response, error = self.na_helper.update_tier_level(base_url, self.rest_api, self.headers, self.parameters['tier_level'])
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
 
     def delete_cvo_gcp(self, we_id):
         """
         Delete GCP CVO
         """
-        self.na_helper.set_api_root_path(self.get_working_environment(), self.rest_api)
-        api_url = '%s%s/%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api.api_root_path + '/working-environments', we_id)
+        api_url = '%s/working-environments/%s' % (self.rest_api.api_root_path, we_id)
         response, error, on_cloud_request_id = self.rest_api.delete(api_url, None, header=self.headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on deleting cvo gcp: %s, %s" % (str(error), str(response)))
 
-        wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], str(on_cloud_request_id))
+        wait_on_completion_api_url = '/occm/api/audit/activeTask/%s' % str(on_cloud_request_id)
         err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "CVO", "delete", 40, 60)
         if err is not None:
             self.module.fail_json(msg="Error: unexpected response wait_on_completion for deleting cvo gcp: %s" % str(err))
 
     def apply(self):
         working_environment_id = None
-        current = self.get_working_environment()
+        modify = None
+
+        current, dummy = self.na_helper.get_working_environment_details_by_name(self.rest_api, self.headers,
+                                                                                self.parameters['name'], "gcp")
+        if current:
+            self.parameters['working_environment_id'] = current['publicId']
         # check the action
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
+
+        if current and self.parameters['state'] != 'absent':
+            working_environment_id = current['publicId']
+            modify, error = self.na_helper.is_cvo_update_needed(self.rest_api, self.headers, self.parameters, self.changeable_params, 'gcp')
+            if error is not None:
+                self.module.fail_json(changed=False, msg=error)
 
         if self.na_helper.changed and not self.module.check_mode:
             if cd_action == "create":
                 working_environment_id = self.create_cvo_gcp()
             elif cd_action == "delete":
                 self.delete_cvo_gcp(current['publicId'])
-
-        if self.parameters['state'] == "present" and cd_action is None:
-            self.module.warn(warning=self.parameters['name'] + ' already exists')
+            else:
+                self.update_cvo_gcp(current['publicId'], modify)
 
         self.module.exit_json(changed=self.na_helper.changed, working_environment_id=working_environment_id)
 

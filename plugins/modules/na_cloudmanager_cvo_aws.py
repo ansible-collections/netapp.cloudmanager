@@ -20,7 +20,7 @@ version_added: '21.3.0'
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 
 description:
-- Create or delete Cloud Manager CVO for AWS.
+- Create, delete, or manage Cloud Manager CVO for AWS.
 
 options:
 
@@ -131,6 +131,7 @@ options:
     required: true
     description:
     - The admin password for Cloud Volumes ONTAP.
+    - It will be updated on each run.
     type: str
 
   ontap_version:
@@ -227,8 +228,14 @@ options:
 
   kms_key_id:
     description:
-    - Aws Encryption.
+    - Aws Encryption parameters. It is required if using aws encryption. Only one of KMS key id or KMS arn should be specified.
     type: str
+
+  kms_key_arn:
+    description:
+    - AWS encryption parameters. It is required if using aws encryption. Only one of KMS key id or KMS arn should be specified.
+    type: str
+    version_added: 21.10.0
 
   aws_tag:
     description:
@@ -440,7 +447,8 @@ class NetAppCloudManagerCVOAWS:
             enable_compliance=dict(required=False, type='bool', default=False),
             enable_monitoring=dict(required=False, type='bool', default=False),
             optimized_network_utilization=dict(required=False, type='bool', default=True),
-            kms_key_id=dict(required=False, type='str'),
+            kms_key_id=dict(required=False, type='str', no_log=True),
+            kms_key_arn=dict(required=False, type='str', no_log=True),
             client_id=dict(required=True, type='str'),
             aws_tag=dict(required=False, type='list', elements='dict', options=dict(
                 tag_key=dict(type='str', no_log=False),
@@ -470,6 +478,7 @@ class NetAppCloudManagerCVOAWS:
                 ['license_type', 'cot-premium-byol', ['platform_serial_number']],
             ],
             required_one_of=[['refresh_token', 'sa_client_id']],
+            mutually_exclusive=[['kms_key_id', 'kms_key_arn']],
             required_together=[['sa_client_id', 'sa_secret_key']],
             supports_check_mode=True,
         )
@@ -480,65 +489,19 @@ class NetAppCloudManagerCVOAWS:
 
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-
+        self.changeable_params = ['aws_tag', 'svm_password', 'tier_level']
         self.rest_api = CloudManagerRestAPI(self.module)
+        self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
+        self.rest_api.api_root_path = '/occm/api/%s' % ('aws/ha' if self.parameters['is_ha'] else 'vsa')
         self.headers = {
             'X-Agent-Id': self.rest_api.format_cliend_id(self.parameters['client_id'])
         }
-
-    def get_working_environment(self):
-        """
-        Get working environment details including:
-        name: working environment name
-        """
-
-        api_url = '%s/occm/api/working-environments' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
-        response, error, dummy = self.rest_api.get(api_url, header=self.headers)
-        if error is not None:
-            self.module.fail_json(
-                msg="Error: unexpected response on getting aws cvo: %s, %s" % (str(error), str(response)))
-
-        for each in response['vsaWorkingEnvironments']:
-            if each['name'] == self.parameters['name']:
-                return each
-
-        return None
-
-    def get_tenant(self):
-        """
-        Get workspace ID (tenant)
-        """
-
-        api_url = '%s/occm/api/tenants' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
-        response, error, dummy = self.rest_api.get(api_url, header=self.headers)
-        if error is not None:
-            self.module.fail_json(
-                msg="Error: unexpected response on getting tenant for aws cvo: %s, %s" % (str(error), str(response)))
-
-        return response[0]['publicId']
-
-    def get_nss(self):
-        """
-        Get nss account
-        """
-
-        api_url = '%s/occm/api/accounts' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
-        response, error, dummy = self.rest_api.get(api_url, header=self.headers)
-        if error is not None:
-            self.module.fail_json(
-                msg="Error: unexpected response on getting nss for aws cvo: %s, %s" % (str(error), str(response)))
-
-        if len(response['nssAccounts']) == 0:
-            self.module.fail_json(msg="could not find any NSS account")
-
-        return response['nssAccounts'][0]['publicId']
 
     def get_vpc(self):
         """
         Get vpc
         :return: vpc ID
         """
-
         vpc_result = None
         ec2 = boto3.client('ec2', region_name=self.parameters['region'])
 
@@ -555,9 +518,11 @@ class NetAppCloudManagerCVOAWS:
         """
         Create AWS CVO
         """
-
         if self.parameters.get('workspace_id') is None:
-            self.parameters['workspace_id'] = self.get_tenant()
+            response, msg = self.na_helper.get_tenant(self.rest_api, self.headers)
+            if response is None:
+                self.module.fail_json(msg)
+            self.parameters['workspace_id'] = response
 
         if self.parameters.get('vpc_id') is None and self.parameters['is_ha'] is False:
             self.parameters['vpc_id'] = self.get_vpc()
@@ -565,12 +530,18 @@ class NetAppCloudManagerCVOAWS:
         if self.parameters.get('nss_account') is None:
             if self.parameters.get('platform_serial_number') is not None:
                 if not self.parameters['platform_serial_number'].startswith('Eval-') and self.parameters['license_type'] == 'cot-premium-byol':
-                    self.parameters['nss_account'] = self.get_nss()
+                    response, msg = self.na_helper.get_nss(self.rest_api, self.headers)
+                    if response is None:
+                        self.module.fail_json(msg)
+                    self.parameters['nss_account'] = response
             elif self.parameters.get('platform_serial_number_node1') is not None and self.parameters.get('platform_serial_number_node2') is not None:
                 if not self.parameters['platform_serial_number_node1'].startswith('Eval-')\
                         and not self.parameters['platform_serial_number_node2'].startswith('Eval-')\
                         and self.parameters['license_type'] == 'ha-cot-premium-byol':
-                    self.parameters['nss_account'] = self.get_nss()
+                    response, msg = self.na_helper.get_nss(self.rest_api, self.headers)
+                    if response is None:
+                        self.module.fail_json(msg)
+                    self.parameters['nss_account'] = response
 
         json = {"name": self.parameters['name'],
                 "region": self.parameters['region'],
@@ -624,8 +595,11 @@ class NetAppCloudManagerCVOAWS:
         if self.parameters.get('backup_volumes_to_cbs') is not None:
             json.update({"backupVolumesToCbs": self.parameters['backup_volumes_to_cbs']})
 
-        if self.parameters.get('kms_key_id') is not None:
-            json.update({"awsEncryptionParameters": {"kmsKeyId": self.parameters['kms_key_id']}})
+        if self.parameters['data_encryption_type'] == "AWS":
+            if self.parameters.get('kms_key_id') is not None:
+                json.update({"awsEncryptionParameters": {"kmsKeyId": self.parameters['kms_key_id']}})
+            if self.parameters.get('kms_key_arn') is not None:
+                json.update({"awsEncryptionParameters": {"kmsKeyArn": self.parameters['kms_key_arn']}})
 
         if self.parameters.get('aws_tag') is not None:
             tags = []
@@ -684,19 +658,14 @@ class NetAppCloudManagerCVOAWS:
         else:
             json["subnetId"] = self.parameters['subnet_id']
 
-        if self.parameters['is_ha'] is True:
-            base_url = '/occm/api/aws/ha/working-environments'
-        else:
-            base_url = '/occm/api/vsa/working-environments'
-
-        api_url = '%s%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], base_url)
-
+        api_url = '%s/working-environments' % self.rest_api.api_root_path
         response, error, on_cloud_request_id = self.rest_api.post(api_url, json, header=self.headers)
         if error is not None:
             self.module.fail_json(
                 msg="Error: unexpected response on creating cvo aws: %s, %s" % (str(error), str(response)))
         working_environment_id = response['publicId']
-        wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], str(on_cloud_request_id))
+        wait_on_completion_api_url = '/occm/api/audit/activeTask/%s' % str(on_cloud_request_id)
+
         err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "CVO", "create", 60, 60)
 
         if err is not None:
@@ -704,21 +673,35 @@ class NetAppCloudManagerCVOAWS:
 
         return working_environment_id
 
+    def update_cvo_aws(self, working_environment_id, modify):
+        base_url = '%s/working-environments/%s/' % (self.rest_api.api_root_path, working_environment_id)
+        for item in modify:
+            if item == 'svm_password':
+                response, error = self.na_helper.update_svm_password(base_url, self.rest_api, self.headers, self.parameters['svm_password'])
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
+            if item == 'aws_tag':
+                tag_list = None
+                if 'aws_tag' in self.parameters:
+                    tag_list = self.parameters['aws_tag']
+                response, error = self.na_helper.update_cvo_tags(base_url, self.rest_api, self.headers, 'aws_tag', tag_list)
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
+            if item == 'tier_level':
+                response, error = self.na_helper.update_tier_level(base_url, self.rest_api, self.headers, self.parameters['tier_level'])
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
+
     def delete_cvo_aws(self, we_id):
         """
         Delete AWS CVO
         """
-        if self.parameters['is_ha'] is True:
-            base_url = '/occm/api/aws/ha/working-environments'
-        else:
-            base_url = '/occm/api/vsa/working-environments'
-
-        api_url = '%s%s/%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], base_url, we_id)
+        api_url = '%s/working-environments/%s' % (self.rest_api.api_root_path, we_id)
         response, error, on_cloud_request_id = self.rest_api.delete(api_url, None, header=self.headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on deleting cvo aws: %s, %s" % (str(error), str(response)))
 
-        wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], str(on_cloud_request_id))
+        wait_on_completion_api_url = '/occm/api/audit/activeTask/%s' % str(on_cloud_request_id)
         err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "CVO", "delete", 40, 60)
 
         if err is not None:
@@ -739,9 +722,22 @@ class NetAppCloudManagerCVOAWS:
         :return: None
         """
         working_environment_id = None
-        current = self.get_working_environment()
+        modify = None
+        current, dummy = self.na_helper.get_working_environment_details_by_name(self.rest_api, self.headers,
+                                                                                self.parameters['name'],
+                                                                                "aws")
+        if current:
+            self.parameters['working_environment_id'] = current['publicId']
         # check the action
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
+
+        if current and self.parameters['state'] != 'absent':
+            # Check mandatory parameters
+            self.validate_cvo_params()
+            working_environment_id = current['publicId']
+            modify, error = self.na_helper.is_cvo_update_needed(self.rest_api, self.headers, self.parameters, self.changeable_params, 'aws')
+            if error is not None:
+                self.module.fail_json(changed=False, msg=error)
 
         if self.na_helper.changed and not self.module.check_mode:
             if cd_action == "create":
@@ -749,9 +745,8 @@ class NetAppCloudManagerCVOAWS:
                 working_environment_id = self.create_cvo_aws()
             elif cd_action == "delete":
                 self.delete_cvo_aws(current['publicId'])
-
-        if self.parameters['state'] == "present" and cd_action is None:
-            self.module.warn(warning=self.parameters['name'] + ' already exists')
+            else:
+                self.update_cvo_aws(current['publicId'], modify)
 
         self.module.exit_json(changed=self.na_helper.changed, working_environment_id=working_environment_id)
 

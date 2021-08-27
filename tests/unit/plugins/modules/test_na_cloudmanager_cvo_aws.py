@@ -119,20 +119,21 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
     @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_vpc')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_tenant')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_nss')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_working_environment')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
-    def test_create_cloudmanager_cvo_aws_pass(self, get_post_api, get_working_environment, get_nss, get_tenant, get_vpc, wait_on_completion, get_token):
+    def test_create_cloudmanager_cvo_aws_pass(self, get_post_api, get_working_environment_details_by_name, get_nss,
+                                              get_tenant, get_vpc, wait_on_completion, get_token):
         set_module_args(self.set_args_create_cloudmanager_cvo_aws())
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
 
         response = {'publicId': 'abcdefg12345'}
+        get_working_environment_details_by_name.return_value = None, None
         get_post_api.return_value = response, None, None
-        get_working_environment.return_value = None
-        get_nss.return_value = 'nss-test'
-        get_tenant.return_value = 'test'
+        get_nss.return_value = 'nss-test', None
+        get_tenant.return_value = 'test', None
         get_vpc.return_value = 'test'
         wait_on_completion.return_value = None
 
@@ -144,11 +145,12 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
     @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_vpc')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_tenant')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_nss')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_working_environment')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
-    def test_create_cloudmanager_cvo_aws_ha_pass(self, get_post_api, get_working_environment, get_nss, get_tenant, get_vpc, wait_on_completion, get_token):
+    def test_create_cloudmanager_cvo_aws_ha_pass(self, get_post_api, get_working_environment_details_by_name, get_nss,
+                                                 get_tenant, get_vpc, wait_on_completion, get_token):
         data = self.set_args_create_cloudmanager_cvo_aws()
         data['is_ha'] = True
         data.pop('subnet_id')
@@ -157,10 +159,10 @@ class TestMyModule(unittest.TestCase):
         my_obj = my_module()
 
         response = {'publicId': 'abcdefg12345'}
+        get_working_environment_details_by_name.return_value = None, None
         get_post_api.return_value = response, None, None
-        get_working_environment.return_value = None
-        get_nss.return_value = 'nss-test'
-        get_tenant.return_value = 'test'
+        get_nss.return_value = 'nss-test', None
+        get_tenant.return_value = 'test', None
         get_vpc.return_value = 'test'
         wait_on_completion.return_value = None
 
@@ -171,9 +173,9 @@ class TestMyModule(unittest.TestCase):
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_working_environment')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.delete')
-    def test_delete_cloudmanager_cvo_aws_pass(self, get_delete_api, get_working_environment, wait_on_completion, get_token):
+    def test_delete_cloudmanager_cvo_aws_pass(self, get_delete_api, get_working_environment_details_by_name, wait_on_completion, get_token):
         set_module_args(self.set_args_delete_cloudmanager_cvo_aws())
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
@@ -181,7 +183,7 @@ class TestMyModule(unittest.TestCase):
         my_cvo = {
             'name': 'test',
             'publicId': 'test'}
-        get_working_environment.return_value = my_cvo
+        get_working_environment_details_by_name.return_value = my_cvo, None
         get_delete_api.return_value = None, None, None
         wait_on_completion.return_value = None
 
