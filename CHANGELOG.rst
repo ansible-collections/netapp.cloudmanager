@@ -5,6 +5,26 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.10.0
+========
+
+Minor Changes
+-------------
+
+- Only these parameters will be modified on the existing CVOs. svm_passowrd will be updated on each run.
+- na_cloudmanager_cvo_aws - Support update on svm_password, tier_level, and aws_tag.
+- na_cloudmanager_cvo_aws - add new parameter ``kms_key_id`` and ``kms_key_arn`` as AWS encryption parameters to support AWS CVO encryption
+- na_cloudmanager_cvo_azure - Add new parameter ``ha_enable_https`` for HA CVO to enable the HTTPS connection from CVO to storage accounts. This can impact write performance. The default is false.
+- na_cloudmanager_cvo_azure - Support update on svm_password, tier_level, and azure_tag.
+- na_cloudmanager_cvo_azure - add new parameter ``azure_encryption_parameters`` to support AZURE CVO encryption
+- na_cloudmanager_cvo_gcp - Support update on svm_password, tier_level, and gcp_labels.
+- na_cloudmanager_cvo_gcp - add new parameter ``gcp_encryption_parameters`` to support GCP CVO encryption
+
+Bugfixes
+--------
+
+- na_cloudmanager_snapmirror - key error CloudProviderName for ONPREM operation
+
 v21.9.0
 =======
 
