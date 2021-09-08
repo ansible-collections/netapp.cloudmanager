@@ -45,7 +45,7 @@ COLLECTION_VERSION = "21.10.0"
 PROD_ENVIRONMENT = {
     'CLOUD_MANAGER_HOST': 'cloudmanager.cloud.netapp.com',
     'AUTH0_DOMAIN': 'netapp-cloud-account.auth0.com',
-    'SA_AUTH_HOST': 'https://cloudmanager.cloud.netapp.com/auth/oauth/token',
+    'SA_AUTH_HOST': 'cloudmanager.cloud.netapp.com/auth/oauth/token',
     'AUTH0_CLIENT': 'Mu0V1ywgYteI6w1MbD15fKfVIUrNXGWC',
     'AMI_FILTER': 'Setup-As-Service-AMI-Prod*',
     'AWS_ACCOUNT': '952013314444',
@@ -56,7 +56,7 @@ PROD_ENVIRONMENT = {
 STAGE_ENVIRONMENT = {
     'CLOUD_MANAGER_HOST': 'staging.cloudmanager.cloud.netapp.com',
     'AUTH0_DOMAIN': 'staging-netapp-cloud-account.auth0.com',
-    'SA_AUTH_HOST': 'https://staging.cloudmanager.cloud.netapp.com/auth/oauth/token',
+    'SA_AUTH_HOST': 'staging.cloudmanager.cloud.netapp.com/auth/oauth/token',
     'AUTH0_CLIENT': 'O6AHa7kedZfzHaxN80dnrIcuPBGEUvEv',
     'AMI_FILTER': 'Setup-As-Service-AMI-*',
     'AWS_ACCOUNT': '282316784512',
@@ -110,10 +110,10 @@ class CloudManagerRestAPI(object):
             self.environment_data = PROD_ENVIRONMENT
         elif self.environment == 'stage':
             self.environment_data = STAGE_ENVIRONMENT
-        self.token_type, self.token = self.get_token()
         self.url = 'https://'
         self.api_root_path = None
         self.check_required_library()
+        self.token_type, self.token = self.get_token()
 
     def check_required_library(self):
         if not HAS_REQUESTS:
@@ -122,23 +122,27 @@ class CloudManagerRestAPI(object):
     def format_cliend_id(self, client_id):
         return client_id if client_id.endswith('clients') else client_id + 'clients'
 
-    def send_request(self, method, api, params, json=None, data=None, header=None):
+    def send_request(self, method, api, params, json=None, data=None, header=None, authorized=True):
         ''' send http request and process response, including error conditions '''
         if params is not None:
             self.module.fail_json(msg='params is not implemented.  api=%s, params=%s' % (api, repr(params)))
         url = self.url + api
+        headers = {
+            'Content-type': "application/json",
+            'Referer': "Ansible_NetApp",
+        }
+        if authorized:
+            headers['Authorization'] = self.token_type + " " + self.token
+        if header is not None:
+            headers.update(header)
+        return self._send_request(method, url, json, data, headers)
+
+    def _send_request(self, method, url, json=None, data=None, headers=None):
         json_dict = None
         json_error = None
         error_details = None
         on_cloud_request_id = None
         response = None
-        headers = {
-            'Content-type': "application/json",
-            'Referer': "Ansible_NetApp",
-            'Authorization': self.token_type + " " + self.token,
-        }
-        if header is not None:
-            headers.update(header)
 
         def get_json(response):
             ''' extract json, and error message if present '''
@@ -179,12 +183,12 @@ class CloudManagerRestAPI(object):
         method = 'GET'
         return self.send_request(method=method, api=api, params=params, json=None, header=header)
 
-    def post(self, api, data, params=None, header=None, gcp_type=False):
+    def post(self, api, data, params=None, header=None, gcp_type=False, authorized=True):
         method = 'POST'
         if gcp_type:
             return self.send_request(method=method, api=api, params=params, data=data, header=header)
         else:
-            return self.send_request(method=method, api=api, params=params, json=data, header=header)
+            return self.send_request(method=method, api=api, params=params, json=data, header=header, authorized=authorized)
 
     def patch(self, api, data, params=None, header=None):
         method = 'PATCH'
@@ -200,20 +204,23 @@ class CloudManagerRestAPI(object):
 
     def get_token(self):
         if self.sa_client_id is not None and self.sa_client_id != "" and self.sa_secret_key is not None and self.sa_secret_key != "":
-            token_res = requests.post(self.environment_data['SA_AUTH_HOST'],
-                                      json={"grant_type": "client_credentials", "client_secret": self.sa_secret_key,
-                                            "client_id": self.sa_client_id, "audience": "https://api.cloud.netapp.com"})
+            response, error, ocr_id = self.post(self.environment_data['SA_AUTH_HOST'],
+                                                data={"grant_type": "client_credentials", "client_secret": self.sa_secret_key,
+                                                      "client_id": self.sa_client_id, "audience": "https://api.cloud.netapp.com"},
+                                                authorized=False)
         elif self.refresh_token is not None and self.refresh_token != "":
-            token_res = requests.post('https://' + self.environment_data['AUTH0_DOMAIN'] + '/oauth/token',
-                                      json={"grant_type": "refresh_token", "refresh_token": self.refresh_token,
-                                            "client_id": self.environment_data['AUTH0_CLIENT'],
-                                            "audience": "https://api.cloud.netapp.com"})
+            response, error, ocr_id = self.post(self.environment_data['AUTH0_DOMAIN'] + '/oauth/token',
+                                                data={"grant_type": "refresh_token", "refresh_token": self.refresh_token,
+                                                      "client_id": self.environment_data['AUTH0_CLIENT'],
+                                                      "audience": "https://api.cloud.netapp.com"},
+                                                authorized=False)
         else:
             self.module.fail_json(msg='Missing refresh_token or sa_client_id and sa_secret_key')
 
-        token_dict = token_res.json()
-        token = token_dict['access_token']
-        token_type = token_dict['token_type']
+        if error:
+            self.module.fail_json(msg='Error acquiring token: %s, %s' % (str(error), str(response)))
+        token = response['access_token']
+        token_type = response['token_type']
 
         return token_type, token
 
@@ -222,12 +229,10 @@ class CloudManagerRestAPI(object):
             cvo_status, failure_error_message, error = self.check_task_status(api_url)
             if error is not None:
                 return error
-            # status value 1 means success
-            if cvo_status == 1:
-                return None
-            # status value -1 means failed
-            elif cvo_status == -1:
+            if cvo_status == -1:
                 return 'Failed to %s %s, error: %s' % (task, action_name, failure_error_message)
+            elif cvo_status == 1:
+                return None         # success
             # status value 0 means pending
             if retries == 0:
                 return 'Taking too long for %s to %s or not properly setup' % (action_name, task)
@@ -243,11 +248,10 @@ class CloudManagerRestAPI(object):
         while True:
             result, error, dummy = self.get(api_url, None, header=headers)
             if error is not None:
-                if network_retries > 0:
-                    time.sleep(1)
-                    network_retries = network_retries - 1
-                else:
+                if network_retries <= 0:
                     return 0, '', error
+                time.sleep(1)
+                network_retries -= 1
             else:
                 response = result
                 break

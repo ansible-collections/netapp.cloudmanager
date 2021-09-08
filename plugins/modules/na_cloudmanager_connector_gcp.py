@@ -251,7 +251,7 @@ class NetAppCloudManagerConnectorGCP(object):
         try:
             fh = open(self.parameters['gcp_service_account_path'])
         except (OSError, IOError) as error:
-            return None, error
+            return None, "opening %s: got: %s" % (self.parameters['gcp_service_account_path'], repr(error))
         with fh:
             key_bytes = json.load(fh)
             if key_bytes is None:
