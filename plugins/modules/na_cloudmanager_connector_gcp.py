@@ -130,6 +130,9 @@ options:
   client_id:
     description:
     - The client ID of the Cloud Manager Connector.
+    - If state is absent, the client id is used to identify the agent and delete it.
+    - If state is absent and this parameter is not set, all agents associated with C(name) are deleted.
+    - Ignored when state is present.
     type: str
 
 '''
@@ -150,7 +153,6 @@ EXAMPLES = """
     proxy_certificates: ["D-TRUST_Root_Class_3_CA_2_2009.crt", "DigiCertGlobalRootCA.crt", "DigiCertGlobalRootG2.crt"]
     account_id: account-xxxxXXXX
     refresh_token: "{{ xxxxxxxxxxxxxxx }}"
-    client_id: "{{ wwwwwwwwww }}"
 
 - name: Delete NetApp Cloud Manager connector for GCP
   netapp.cloudmanager.na_cloudmanager_connector_gcp:
@@ -172,6 +174,14 @@ client_id:
   type: str
   returned: success
   sample: 'FDQE8SwrbjVS6mqUgZoOHQmu2DvBNRRW'
+client_ids:
+  description:
+    - a list of client ids matching the name and provider if the connector already exists.
+    - ideally the list should be empty, or contain a single element matching client_id.
+  type: list
+  elements: str
+  returned: success
+  sample: ['FDQE8SwrbjVS6mqUgZoOHQmu2DvBNRRW']
 """
 import uuid
 import time
@@ -183,7 +193,7 @@ import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as ne
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module import NetAppModule
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
 
-IMPORT_ERRORS = list()
+IMPORT_ERRORS = []
 HAS_GCP_COLLECTION = False
 
 try:
@@ -226,9 +236,6 @@ class NetAppCloudManagerConnectorGCP(object):
 
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
-            required_if=[
-                ['state', 'absent', ['client_id']]
-            ],
             required_one_of=[['refresh_token', 'sa_client_id']],
             required_together=[['sa_client_id', 'sa_secret_key']],
             supports_check_mode=True
@@ -294,10 +301,12 @@ class NetAppCloudManagerConnectorGCP(object):
 
         occm_status, error, dummy = self.rest_api.get(api_url, header=headers)
         if error is not None:
+            if error == '404' and b'is not found' in occm_status:
+                return None
             self.module.fail_json(
                 msg="Error: unexpected response on getting occm: %s, %s" % (str(error), str(occm_status)))
 
-        return occm_status['operation']['status']
+        return occm_status
 
     def get_custom_data_for_gcp(self, proxy_certificates):
         '''
@@ -449,7 +458,7 @@ class NetAppCloudManagerConnectorGCP(object):
             'Authorization': self.rest_api.token_type + " " + self.rest_api.gcp_token,
             'Content-type': "application/json",
             'Referer': "Ansible_NetApp",
-            'X-Agent-Id': self.rest_api.format_cliend_id(self.parameters['client_id'])
+            'X-Agent-Id': self.rest_api.format_cliend_id(client_id)
         }
 
         response, error, dummy = self.rest_api.post(api_url, data=gcp_deployment_template, header=headers,
@@ -462,18 +471,21 @@ class NetAppCloudManagerConnectorGCP(object):
         time.sleep(60)
         retries = 16
         while retries > 0:
-            occm_resp, error = self.na_helper.check_occm_status(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, client_id)
+            agent, error = self.na_helper.get_occm_agent(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, client_id)
             if error is not None:
                 self.module.fail_json(
-                    msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
-            if occm_resp['agent']['status'] == "active":
+                    msg="Error: Not able to get occm status: %s, %s" % (str(error), str(agent)),
+                    client_id=client_id, changed=True)
+            if agent['status'] == "active":
                 break
             else:
                 time.sleep(30)
-            retries = retries - 1
+            retries -= 1
         if retries == 0:
             # Taking too long for status to be active
-            return self.module.fail_json(msg="Taking too long for OCCM agent to be active or not properly setup")
+            msg = "Connector VM is created and registered.  Taking too long for OCCM agent to be active or not properly setup."
+            msg += '  Latest status: %s' % agent
+            self.module.fail_json(msg=msg, client_id=client_id, changed=True)
 
         return response, client_id, error
 
@@ -482,12 +494,10 @@ class NetAppCloudManagerConnectorGCP(object):
         Create Cloud Manager connector for GCP
         '''
         # check proxy configuration
-        if 'proxy_user_name' in self.parameters:
-            if 'proxy_url' not in self.parameters:
-                self.module.fail_json(msg="Error: missing proxy_url")
-        if 'proxy_password' in self.parameters:
-            if 'proxy_url' not in self.parameters:
-                self.module.fail_json(msg="Error: missing proxy_url")
+        if 'proxy_user_name' in self.parameters and 'proxy_url' not in self.parameters:
+            self.module.fail_json(msg="Error: missing proxy_url")
+        if 'proxy_password' in self.parameters and 'proxy_url' not in self.parameters:
+            self.module.fail_json(msg="Error: missing proxy_url")
 
         proxy_certificates = []
         if 'proxy_certificates' in self.parameters:
@@ -524,33 +534,62 @@ class NetAppCloudManagerConnectorGCP(object):
 
         response, error, dummy = self.rest_api.delete(api_url, None, header=headers)
         if error is not None:
-            self.module.fail_json(
-                msg="Error: unexpected response on checking occm status: %s, %s" % (str(error), str(response)))
+            return "Error: unexpected response on deleting VM: %s, %s" % (str(error), str(response))
         # sleep for 30 sec
         time.sleep(30)
+        if 'client_id' not in self.parameters:
+            return None
         # check occm status
         retries = 30
         while retries > 0:
-            occm_resp, error = self.na_helper.check_occm_status(self.rest_api.environment_data['CLOUD_MANAGER_HOST'],
-                                                                self.rest_api, self.parameters['client_id'])
+            agent, error = self.na_helper.get_occm_agent(self.rest_api.environment_data['CLOUD_MANAGER_HOST'],
+                                                         self.rest_api, self.parameters['client_id'])
             if error is not None:
-                self.module.fail_json(
-                    msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
-            if occm_resp['agent']['status'] != "active":
+                return "Error: Not able to get occm status after deleting VM: %s, %s" % (str(error), str(agent))
+            if agent['status'] != ["active", "pending"]:
                 break
             else:
                 time.sleep(10)
-            retries = retries - 1
-        if retries == 0:
+            retries -= 1 if agent['status'] == "active" else 5
+        if retries == 0 and agent['status'] == "active":
             # Taking too long for terminating OCCM
-            return self.module.fail_json(msg="Taking too long for instance to finish terminating")
+            return "Taking too long for instance to finish terminating. Latest status: %s" % str(agent)
+        return None
 
-        response, error = self.na_helper.delete_occm(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, self.parameters['client_id'])
-        if error is not None:
+    def delete_occm_agents(self, agents):
+        error = self.na_helper.delete_occm_agents(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, agents)
+        if error:
+            return "Error: deleting OCCM agent(s): %s" % error
+        return None
+
+    def get_occm_agents(self):
+        if 'client_id' in self.parameters and self.parameters['state'] == 'absent':
+            agent, error = self.na_helper.get_occm_agent(self.rest_api.environment_data['CLOUD_MANAGER_HOST'],
+                                                         self.rest_api, self.parameters['client_id'])
+            if error == '403' and b'Action not allowed for user' in agent:
+                # assume the agent does not exist anymore
+                agents, error = [], None
+                self.module.warn('Client Id %s was not found for this account.' % self.parameters['client_id'])
+            else:
+                agents = [agent]
+        else:
+            agents, error = self.na_helper.get_occm_agents(self.rest_api.environment_data['CLOUD_MANAGER_HOST'],
+                                                           self.rest_api, self.parameters['account_id'],
+                                                           self.parameters['name'], 'GCP')
+        if error:
             self.module.fail_json(
-                msg="Error: unexpected response on deleting OCCM: %s, %s" % (str(error), str(response)))
+                msg="Error: getting OCCM agents: %s, %s" % (str(error), str(agents)))
+        return agents
 
-        return response
+    def set_client_id(self, agents):
+        client_id = ""
+        client_ids = [agent['agentId'] for agent in agents if 'agentId' in agent]
+        if len(client_ids) == 1:
+            client_id = client_ids[0]
+            self.parameters['client_id'] = client_ids[0]
+        elif 'client_id' in self.parameters and self.parameters['client_id'] in client_ids:
+            client_id = self.parameters['client_id']
+        return client_id, client_ids
 
     def apply(self):
         """
@@ -558,19 +597,37 @@ class NetAppCloudManagerConnectorGCP(object):
         :return: None
         """
         client_id = ""
-        if self.module.check_mode:
-            pass
-        else:
-            if self.parameters['state'] == 'present':
-                client_id = self.create_occm_gcp()
-                self.na_helper.changed = True
-            elif self.parameters['state'] == 'absent':
-                status = self.get_deploy_vm()
-                if status != 'terminated':
-                    self.delete_occm_gcp()
-                    self.na_helper.changed = True
+        agents, client_ids = [], []
+        current_vm = self.get_deploy_vm()
+        if current_vm and current_vm['operation']['status'] == 'terminated':
+            current_vm = None
+        current = current_vm
+        if self.parameters['state'] == 'absent' or current:
+            agents = self.get_occm_agents()
+            client_id, client_ids = self.set_client_id(agents)
+            if agents and current is None:
+                current = {}
+        if agents:
+            current['agents'] = agents
 
-        self.module.exit_json(changed=self.na_helper.changed, client_id=client_id)
+        cd_action = self.na_helper.get_cd_action(current, self.parameters)
+        if self.na_helper.changed and not self.module.check_mode:
+            if cd_action == 'create':
+                client_id = self.create_occm_gcp()
+            elif cd_action == 'delete':
+                errors = []
+                if current_vm:
+                    error = self.delete_occm_gcp()
+                    if error:
+                        errors.append(error)
+                if agents:
+                    error = self.delete_occm_agents(agents)
+                    if error:
+                        errors.append(error)
+                if errors:
+                    self.module.fail_json(msg='.  '.join(errors))
+
+        self.module.exit_json(changed=self.na_helper.changed, client_id=client_id, client_ids=client_ids)
 
 
 def main():

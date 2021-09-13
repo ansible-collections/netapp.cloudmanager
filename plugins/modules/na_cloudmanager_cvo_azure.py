@@ -508,16 +508,14 @@ class NetAppCloudManagerCVOAZURE:
 
             json["haParams"] = ha_params
 
-        if self.parameters.get('vnet_resource_group') is not None:
-            json.update({"vnetId": ('/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
-                self.parameters['subscription_id'], self.parameters['vnet_resource_group'], self.parameters['vnet_id']))})
-            json.update({"subnetId": ('/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s' % (
-                self.parameters['subscription_id'], self.parameters['vnet_resource_group'], self.parameters['vnet_id'], self.parameters['subnet_id']))})
-        else:
-            json.update({"vnetId": ('/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
-                self.parameters['subscription_id'], self.parameters['resource_group'], self.parameters['vnet_id']))})
-            json.update({"subnetId": ('/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s' % (
-                self.parameters['subscription_id'], self.parameters['resource_group'], self.parameters['vnet_id'], self.parameters['subnet_id']))})
+        resource_group = self.parameters['vnet_resource_group'] if self.parameters.get(
+            'vnet_resource_group') is not None else self.parameters['resource_group']
+
+        resource_group_path = 'subscriptions/%s/resourceGroups/%s' % (self.parameters['subscription_id'], resource_group)
+        vnet_format = '%s/%s' if self.rest_api.simulator else '/%s/providers/Microsoft.Network/virtualNetworks/%s'
+        vnet = vnet_format % (resource_group_path, self.parameters['vnet_id'])
+        json.update({"vnetId": vnet})
+        json.update({"subnetId": '%s/subnets/%s' % (vnet, self.parameters['subnet_id'])})
 
         api_url = '%s/working-environments' % self.rest_api.api_root_path
         response, error, on_cloud_request_id = self.rest_api.post(api_url, json, header=self.headers)

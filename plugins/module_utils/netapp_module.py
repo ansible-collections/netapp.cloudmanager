@@ -67,12 +67,12 @@ class NetAppModule(object):
     '''
 
     def __init__(self):
-        self.log = list()
+        self.log = []
         self.changed = False
         self.parameters = {'name': 'not intialized'}
 
     def set_parameters(self, ansible_params):
-        self.parameters = dict()
+        self.parameters = {}
         for param in ansible_params:
             if ansible_params[param] is not None:
                 self.parameters[param] = ansible_params[param]
@@ -88,11 +88,7 @@ class NetAppModule(object):
                 is_present = 'present'
             action = cd_action(current=is_present, desired = self.desired.state())
         '''
-        if 'state' in desired:
-            desired_state = desired['state']
-        else:
-            desired_state = 'present'
-
+        desired_state = desired['state'] if 'state' in desired else 'present'
         if current is None and desired_state == 'absent':
             return None
         if current is not None and desired_state == 'present':
@@ -104,7 +100,7 @@ class NetAppModule(object):
         return 'create'
 
     def compare_and_update_values(self, current, desired, keys_to_compare):
-        updated_values = dict()
+        updated_values = {}
         is_changed = False
         for key in keys_to_compare:
             if key in current:
@@ -235,11 +231,7 @@ class NetAppModule(object):
 
         url = host + '/tenancy/account/MyAccount'
         account_res, error, dummy = rest_api.post(url, header=headers)
-        if error is not None:
-            account_id = None
-        else:
-            account_id = account_res['accountPublicId']
-
+        account_id = None if error is not None else account_res['accountPublicId']
         return account_id, error
 
     def get_account(self, host, rest_api):
@@ -281,16 +273,12 @@ class NetAppModule(object):
         provider = working_environment_details['cloudProviderName']
         is_ha = working_environment_details['isHA']
         api_root_path = None
-        if provider != "Amazon":
-            if is_ha:
-                api_root_path = "/occm/api/" + provider.lower() + "/ha"
-            else:
-                api_root_path = "/occm/api/" + provider.lower() + "/vsa"
+        if provider == "Amazon":
+            api_root_path = "/occm/api/aws/ha" if is_ha else "/occm/api/vsa"
+        elif is_ha:
+            api_root_path = "/occm/api/" + provider.lower() + "/ha"
         else:
-            if is_ha:
-                api_root_path = "/occm/api/aws/ha"
-            else:
-                api_root_path = "/occm/api/vsa"
+            api_root_path = "/occm/api/" + provider.lower() + "/vsa"
         rest_api.api_root_path = api_root_path
 
     def have_required_parameters(self, action):
@@ -301,10 +289,11 @@ class NetAppModule(object):
                    'update_aggregate': ['number_of_disks', 'disk_size_size', 'disk_size_unit', 'working_environment_id'],
                    'delete_aggregate': ['working_environment_id'],
                    }
-        missed_params = []
-        for parameter in actions[action]:
-            if parameter not in self.parameters:
-                missed_params.append(parameter)
+        missed_params = [
+            parameter
+            for parameter in actions[action]
+            if parameter not in self.parameters
+        ]
 
         if not missed_params:
             return True, None
@@ -327,7 +316,7 @@ class NetAppModule(object):
             aggregate name)
         '''
         # if the object does not exist,  we can't modify it
-        modified = dict()
+        modified = {}
         if current is None:
             return modified
 
@@ -379,7 +368,7 @@ class NetAppModule(object):
                 desired_diff_list.append(item)
 
         # get what in current but not in desired
-        current_diff_list = list()
+        current_diff_list = []
         for item in current:
             if item in desired_copy:
                 desired_copy.remove(item)
@@ -407,7 +396,7 @@ class NetAppModule(object):
         exclude_list = ['api_url', 'token_type', 'refresh_token', 'sa_secret_key', 'sa_client_id']
         if exclusion is not None:
             exclude_list += exclusion
-        api_keys = dict()
+        api_keys = {}
         for k, v in parameters.items():
             if k not in exclude_list:
                 words = k.split("_")
@@ -415,7 +404,7 @@ class NetAppModule(object):
                 for word in words:
                     if len(api_key) > 0:
                         word = word.title()
-                    api_key = api_key + word
+                    api_key += word
                 api_keys[api_key] = v
         return api_keys
 
@@ -425,8 +414,11 @@ class NetAppModule(object):
         Convert a dictionary data to json format string
         '''
         dump = json.dumps(data, indent=2, separators=(',', ': '))
-        tabbed = re.sub('\n +', lambda match: '\n' + '\t' * int(len(match.group().strip('\n')) / 2), dump)
-        return tabbed
+        return re.sub(
+            '\n +',
+            lambda match: '\n' + '\t' * int(len(match.group().strip('\n')) / 2),
+            dump,
+        )
 
     @staticmethod
     def encode_certificates(certificate_file):
@@ -441,20 +433,50 @@ class NetAppModule(object):
             cert = fh.read()
             if cert is None:
                 return None, "Error: file is empty"
-            return base64.b64encode(cert), None
+            return base64.b64encode(cert).decode('utf-8'), None
+
+    @staticmethod
+    def get_occm_agents(host, rest_api, account_id, name, provider):
+        """
+        Collect a list of agents matching account_id, name, and provider.
+        :return: list of agents, error
+        """
+
+        # I tried to query by name and provider in addition to account_id, but it returned everything
+        params = {'account_id': account_id}
+        get_occum_url = "%s/agents-mgmt/agent" % host
+        headers = {
+            "X-User-Token": rest_api.token_type + " " + rest_api.token,
+        }
+        agents, error, dummy = rest_api.get(get_occum_url, header=headers, params=params)
+        if isinstance(agents, dict) and 'agents' in agents:
+            agents = [agent for agent in agents['agents'] if agent['name'] == name and agent['provider'] == provider]
+        return agents, error
+
+    @staticmethod
+    def get_occm_agent(host, rest_api, client_id):
+        """
+        Fetch OCCM agent given its client id
+        :return: agent details, error
+        """
+        agent, error = NetAppModule.check_occm_status(host, rest_api, client_id)
+        if isinstance(agent, dict) and 'agent' in agent:
+            agent = agent['agent']
+        return agent, error
 
     @staticmethod
     def check_occm_status(host, rest_api, client_id):
         """
         Check OCCM status
         :return: status
+        TO BE DEPRECATED - use get_occm_agent
         """
 
-        get_occum_url = host + "/agents-mgmt/agent/" + rest_api.format_cliend_id(client_id)
+        get_occm_url = host + "/agents-mgmt/agent/" + rest_api.format_cliend_id(client_id)
         headers = {
             "X-User-Token": rest_api.token_type + " " + rest_api.token,
         }
-        occm_status, error, dummy = rest_api.get(get_occum_url, header=headers)
+        occm_status, error, dummy = rest_api.get(get_occm_url, header=headers)
         return occm_status, error
 
     def register_agent_to_service(self, host, rest_api, provider, vpc):
@@ -503,6 +525,20 @@ class NetAppModule(object):
 
         occm_status, error, dummy = rest_api.delete(api_url, None, header=headers)
         return occm_status, error
+
+    def delete_occm_agents(self, host, rest_api, agents):
+        '''
+        delete a list of occm
+        '''
+        results = []
+        for agent in agents:
+            if 'agentId' in agent:
+                occm_status, error = self.delete_occm(host, rest_api, agent['agentId'])
+            else:
+                occm_status, error = None, 'unexpected agent contents: %s' % repr(agent)
+            if error:
+                results.append((occm_status, error))
+        return results
 
     @staticmethod
     def call_parameters():
@@ -814,9 +850,8 @@ class NetAppModule(object):
         if provider == 'azure':
             if desired['capacity_tier'] == 'Blob' and tier_level != desired['tier_level']:
                 modified.append('tier_level')
-        else:
-            if tier_level != desired['tier_level']:
-                modified.append('tier_level')
+        elif tier_level != desired['tier_level']:
+            modified.append('tier_level')
 
         if provider == 'aws' and self.is_cvo_tags_changed(rest_api, headers, desired, 'aws_tag'):
             modified.append('aws_tag')
@@ -846,7 +881,7 @@ class NetAppModule(object):
     def is_cvo_update_needed(self, rest_api, headers, parameters, changeable_params, provider):
         modify = self.get_modify_cvo_params(rest_api, headers, parameters, provider)
         unmodifiable = [attr for attr in modify if attr not in changeable_params]
-        if len(unmodifiable) > 0:
+        if unmodifiable:
             return None, "%s cannot be modified." % str(unmodifiable)
         else:
             return modify, None
@@ -870,8 +905,7 @@ class NetAppModule(object):
             return True, None
 
     def update_svm_password(self, base_url, rest_api, headers, svm_password):
-        body = dict()
-        body['password'] = svm_password
+        body = {'password': svm_password}
         response, err, dummy = rest_api.put(base_url + "set-password", body, header=headers)
         if err is not None:
             return False, 'Error: unexpected response on modifying svm_password: %s, %s' % (str(err), str(response))
@@ -879,8 +913,7 @@ class NetAppModule(object):
             return True, None
 
     def update_tier_level(self, base_url, rest_api, headers, tier_level):
-        body = dict()
-        body['level'] = tier_level
+        body = {'level': tier_level}
         response, err, dummy = rest_api.post(base_url + "change-tier-level", body, header=headers)
         if err is not None:
             return False, 'Error: unexpected response on modify tier_level: %s, %s' % (str(err), str(response))

@@ -3,6 +3,7 @@
 
 ''' unit tests Cloudmanager Ansible module: '''
 
+
 from __future__ import (absolute_import, division, print_function)
 
 __metaclass__ = type
@@ -18,7 +19,7 @@ from ansible_collections.netapp.cloudmanager.tests.unit.compat.mock import patch
 from ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp \
     import NetAppCloudManagerConnectorGCP as my_module
 
-IMPORT_ERRORS = list()
+IMPORT_ERRORS = []
 HAS_GCP_COLLECTION = False
 
 try:
@@ -84,7 +85,7 @@ def set_default_args_pass_check():
         'client_id': 'Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh',
         'refresh_token': 'my_refresh_token',
         'state': 'present',
-        'name': 'TestG',
+        'name': 'CxName',
         'project_id': 'tlv-support',
         'zone': 'us-west-1',
         'account_id': 'account-test',
@@ -99,7 +100,7 @@ def set_args_create_cloudmanager_connector_gcp():
         'client_id': 'Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh',
         'refresh_token': 'my_refresh_token',
         'state': 'present',
-        'name': 'TestG',
+        'name': 'CxName',
         'project_id': 'tlv-support',
         'zone': 'us-west-1',
         'account_id': 'account-test',
@@ -114,7 +115,7 @@ def set_args_delete_cloudmanager_connector_gcp():
         'client_id': 'test',
         'refresh_token': 'my_refresh_token',
         'state': 'absent',
-        'name': 'Dummyname',
+        'name': 'CxName',
         'project_id': 'tlv-support',
         'zone': 'us-west-1',
         'account_id': 'account-test',
@@ -150,13 +151,16 @@ def test_module_fail_when_required_args_present(get_token, get_gcp_token, patch_
 @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.deploy_gcp_vm')
 @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_custom_data_for_gcp')
 @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.create_occm_gcp')
+@patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_deploy_vm')
 @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
-def test_create_cloudmanager_connector_gcp_pass(get_post_api, create_occm_gcp, get_custom_data_for_gcp, deploy_gcp_vm, get_gcp_token, get_token, patch_ansible):
+def test_create_cloudmanager_connector_gcp_pass(get_post_api, get_vm, create_occm_gcp, get_custom_data_for_gcp,
+                                                deploy_gcp_vm, get_gcp_token, get_token, patch_ansible):
     set_module_args(set_args_create_cloudmanager_connector_gcp())
     get_token.return_value = 'test', 'test'
     get_gcp_token.return_value = 'test', None
     my_obj = my_module()
 
+    get_vm.return_value = None
     deploy_gcp_vm.return_value = None, 'test', None
     get_custom_data_for_gcp.return_value = 'test', 'test', None
     create_occm_gcp.return_value = 'test'
@@ -172,8 +176,9 @@ def test_create_cloudmanager_connector_gcp_pass(get_post_api, create_occm_gcp, g
 @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_gcp_token')
 @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.delete_occm_gcp')
 @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_deploy_vm')
+@patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_occm_agents')
 @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.delete')
-def test_delete_cloudmanager_connector_gcp_pass(get_delete_api, get_deploy_vm, delete_occm_gcp, get_gcp_token, get_token, patch_ansible):
+def test_delete_cloudmanager_connector_gcp_pass(get_delete_api, get_agents, get_deploy_vm, delete_occm_gcp, get_gcp_token, get_token, patch_ansible):
     set_module_args(set_args_delete_cloudmanager_connector_gcp())
     get_token.return_value = 'test', 'test'
     get_gcp_token.return_value = 'test', None
@@ -183,13 +188,220 @@ def test_delete_cloudmanager_connector_gcp_pass(get_delete_api, get_deploy_vm, d
         'name': 'Dummyname-vm-boot-deployment',
         'client_id': 'test',
         'refresh_token': 'my_refresh_token',
+        'operation': {'status': 'active'}
     }
     get_deploy_vm.return_value = my_connector_gcp
+    get_agents.return_value = []
     get_delete_api.return_value = None, None, None
-    delete_occm_gcp.return_value = 'terminated'
+    delete_occm_gcp.return_value = None
 
     with pytest.raises(AnsibleExitJson) as exc:
         my_obj.apply()
     print('Info: test_delete_cloudmanager_connector_gcp: %s' % repr(exc.value))
 
     assert exc.value.args[0]['changed']
+
+
+TOKEN_DICT = {
+    'access_token': 'access_token',
+    'token_type': 'token_type'
+}
+
+
+AGENT_DICTS = {
+    'active': {
+        'agent': {'status': 'active'},
+    },
+    'pending': {
+        'agent': {'status': 'pending'},
+    },
+    'other': {
+        'agent': {'status': 'pending', 'agentId': 'agent11', 'name': 'CxName', 'provider': 'GCP'},
+    }
+}
+
+
+CLIENT_DICT = {
+    'clientId': '12345',
+    'clientSecret': 'a1b2c3'
+}
+
+SRR = {
+    # common responses (json_dict, error, ocr_id)
+    'empty_good': ({}, None, None),
+    'zero_record': ({'records': []}, None, None),
+    'get_token': (TOKEN_DICT, None, None),
+    'get_gcp_token': (TOKEN_DICT, None, None),
+    'get_agent_status_active': (AGENT_DICTS['active'], None, None),
+    'get_agent_status_pending': (AGENT_DICTS['pending'], None, None),
+    'get_agent_status_other': (AGENT_DICTS['other'], None, None),
+    'get_agents': ({'agents': [AGENT_DICTS['other']['agent']]}, None, None),
+    'get_agents_empty': ({'agents': []}, None, None),
+    'get_agent_not_found': (b"{'message': 'Action not allowed for user'}", '403', None),
+    'get_vm': ({'operation': {'status': 'active'}}, None, None),
+    'get_vm_not_found': (b"{'message': 'is not found'}", '404', None),
+    'register_agent': (CLIENT_DICT, None, None),
+    'end_of_sequence': (None, "Unexpected call to send_request", None),
+    'generic_error': (None, "Expected error", None),
+}
+
+
+@patch('time.sleep')
+@patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_gcp_token')
+@patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.send_request')
+def test_delete_occm_gcp_pass(mock_request, get_gcp_token, ignore_sleep, patch_ansible):
+    set_module_args(set_args_delete_cloudmanager_connector_gcp())
+    get_gcp_token.return_value = 'test', None
+    mock_request.side_effect = [
+        SRR['get_token'],   # OAUTH
+        SRR['empty_good'],  # delete
+        SRR['get_agent_status_active'],     # status
+        SRR['get_agent_status_pending'],    # status
+        SRR['get_agent_status_other'],      # status
+        SRR['end_of_sequence'],
+    ]
+    my_obj = my_module()
+
+    error = my_obj.delete_occm_gcp()
+    print(error)
+    print(mock_request.mock_calls)
+    assert error is None
+
+
+@patch('time.sleep')
+@patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_gcp_token')
+@patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.send_request')
+def test_create_occm_gcp_pass(mock_request, get_gcp_token, ignore_sleep, patch_ansible):
+    set_module_args(set_args_create_cloudmanager_connector_gcp())
+    get_gcp_token.return_value = 'test', None
+    mock_request.side_effect = [
+        SRR['get_token'],       # OAUTH
+        SRR['register_agent'],  # register
+        SRR['empty_good'],      # deploy
+        SRR['get_agent_status_pending'],    # status
+        SRR['get_agent_status_active'],     # status
+        SRR['end_of_sequence'],
+    ]
+    my_obj = my_module()
+
+    client_id = my_obj.create_occm_gcp()
+    print(client_id)
+    print(mock_request.mock_calls)
+    assert client_id == '12345'
+
+
+@patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_gcp_token')
+@patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.send_request')
+def test_get_deploy_vm_pass(mock_request, get_gcp_token, patch_ansible):
+    set_module_args(set_args_delete_cloudmanager_connector_gcp())
+    get_gcp_token.return_value = 'test', None
+    mock_request.side_effect = [
+        SRR['get_token'],       # OAUTH
+        SRR['get_vm'],          # get
+        SRR['end_of_sequence'],
+    ]
+    my_obj = my_module()
+
+    vm = my_obj.get_deploy_vm()
+    print(vm)
+    print(mock_request.mock_calls)
+    assert vm == SRR['get_vm'][0]
+
+
+@patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_gcp_token')
+@patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.send_request')
+def test_get_occm_agents_absent_pass(mock_request, get_gcp_token, patch_ansible):
+    set_module_args(set_args_delete_cloudmanager_connector_gcp())
+    get_gcp_token.return_value = 'test', None
+    mock_request.side_effect = [
+        SRR['get_token'],                   # OAUTH
+        SRR['get_agent_status_active'],     # get
+        SRR['end_of_sequence'],
+    ]
+    my_obj = my_module()
+
+    agents = my_obj.get_occm_agents()
+    print(agents)
+    print(mock_request.mock_calls)
+    assert agents == [SRR['get_agent_status_active'][0]['agent']]
+
+
+@patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_gcp_token')
+@patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.send_request')
+def test_get_occm_agents_present_pass(mock_request, get_gcp_token, patch_ansible):
+    set_module_args(set_args_create_cloudmanager_connector_gcp())
+    get_gcp_token.return_value = 'test', None
+    mock_request.side_effect = [
+        SRR['get_token'],             # OAUTH
+        SRR['get_agents'],            # get
+        SRR['end_of_sequence'],
+    ]
+    my_obj = my_module()
+
+    agents = my_obj.get_occm_agents()
+    print(agents)
+    print(mock_request.mock_calls)
+    assert agents == SRR['get_agents'][0]['agents']
+
+
+@patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_gcp_token')
+@patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.send_request')
+def test_create_idempotent(mock_request, get_gcp_token, patch_ansible):
+    set_module_args(set_args_create_cloudmanager_connector_gcp())
+    get_gcp_token.return_value = 'test', None
+    mock_request.side_effect = [
+        SRR['get_token'],             # OAUTH
+        SRR['get_vm'],                # get
+        SRR['get_agents'],            # get
+        SRR['end_of_sequence'],
+    ]
+    my_obj = my_module()
+
+    with pytest.raises(AnsibleExitJson) as exc:
+        my_obj.apply()
+    print(mock_request.mock_calls)
+    print(exc)
+    assert not exc.value.args[0]['changed']
+    assert exc.value.args[0]['client_id'] == SRR['get_agents'][0]['agents'][0]['agentId']
+
+
+@patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_gcp_token')
+@patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.send_request')
+def test_delete_idempotent(mock_request, get_gcp_token, patch_ansible):
+    set_module_args(set_args_delete_cloudmanager_connector_gcp())
+    get_gcp_token.return_value = 'test', None
+    mock_request.side_effect = [
+        SRR['get_token'],               # OAUTH
+        SRR['get_vm_not_found'],        # get vn
+        SRR['get_agent_not_found'],     # get agents
+        SRR['end_of_sequence'],
+    ]
+    my_obj = my_module()
+
+    with pytest.raises(AnsibleExitJson) as exc:
+        my_obj.apply()
+    print(mock_request.mock_calls)
+    print(exc)
+    assert not exc.value.args[0]['changed']
+    assert exc.value.args[0]['client_id'] == ""
+
+
+# @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_gcp_token')
+# @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.send_request')
+# def test_delete_idempotent(mock_request, get_gcp_token, patch_ansible):
+#     set_module_args(set_args_delete_cloudmanager_connector_gcp())
+#     get_gcp_token.return_value = 'test', None
+#     mock_request.side_effect = [
+#         SRR['get_token'],             # OAUTH
+#         SRR['get_vm_not_found'],      # get vn
+#         SRR['get_agents'],            # get
+#         SRR['end_of_sequence'],
+#     ]
+#     my_obj = my_module()
+
+#     with pytest.raises(AnsibleExitJson) as exc:
+#         my_obj.apply()
+#     print(mock_request.mock_calls)
+#     print(exc)
+#     assert not exc.value.args[0]['changed']
+#     assert exc.value.args[0]['client_id'] == SRR['get_agents'][0][0]['agentId']

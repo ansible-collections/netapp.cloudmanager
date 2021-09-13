@@ -34,6 +34,14 @@ options:
     default: prod
     choices: ['prod', 'stage']
     version_added: 21.8.0
+
+  feature_flags:
+    description:
+      - Enable or disable a new feature.
+      - This can be used to enable an experimental feature or disable a new feature that breaks backward compatibility.
+      - Supported keys and values are subject to change without notice.  Unknown keys are ignored.
+    type: dict
+    version_added: 21.11.0
 notes:
   - The modules prefixed with na_cloudmanager are built to manage CloudManager and CVO deployments in AWS/GCP/Azure clouds.
   - If sa_client_id and sa_secret_key are provided, service account will be used in operations. refresh_token will be ignored.

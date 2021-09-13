@@ -28,6 +28,17 @@ This collection follows the [Ansible project's Code of Conduct](https://docs.ans
 https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
+## 21.11.0
+
+### Minor Changes
+  - na_cloudmanager_connector_gcp - make the module idempotent for create and delete.
+  - na_cloudmanager_connector_gcp - automatically fetch client_id for delete.
+  - na_cloudmanager_connector_gcp - report client_id if connector already exists.
+  - all modules - better error reporting if refresh_token is not valid.
+
+### Bug Fixes
+  - na_cloudmanager_connector_gcp - typeError when using proxy certificates.
+
 ## 21.10.0
 
 ### Minor Changes

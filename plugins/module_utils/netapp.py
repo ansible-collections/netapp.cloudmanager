@@ -33,6 +33,7 @@ netapp.py: wrapper around send_requests and other utilities
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+import logging
 import time
 from ansible.module_utils.basic import missing_required_lib
 
@@ -41,7 +42,7 @@ try:
 except ImportError:
     ansible_version = 'unknown'
 
-COLLECTION_VERSION = "21.10.0"
+COLLECTION_VERSION = "21.11.0"
 PROD_ENVIRONMENT = {
     'CLOUD_MANAGER_HOST': 'cloudmanager.cloud.netapp.com',
     'AUTH0_DOMAIN': 'netapp-cloud-account.auth0.com',
@@ -87,14 +88,44 @@ POW2_BYTE_MAP = dict(
 )
 
 
+LOG = logging.getLogger(__name__)
+LOG_FILE = '/tmp/cloudmanager_apis.log'
+
+
 def cloudmanager_host_argument_spec():
 
     return dict(
         refresh_token=dict(required=False, type='str', no_log=True),
         sa_client_id=dict(required=False, type='str', no_log=True),
         sa_secret_key=dict(required=False, type='str', no_log=True),
-        environment=dict(required=False, type='str', choices=['prod', 'stage'], default='prod')
+        environment=dict(required=False, type='str', choices=['prod', 'stage'], default='prod'),
+        feature_flags=dict(required=False, type='dict')
     )
+
+
+def has_feature(module, feature_name):
+    feature = get_feature(module, feature_name)
+    if isinstance(feature, bool):
+        return feature
+    module.fail_json(msg="Error: expected bool type for feature flag: %s" % feature_name)
+
+
+def get_feature(module, feature_name):
+    ''' if the user has configured the feature, use it
+        otherwise, use our default
+    '''
+    default_flags = dict(
+        trace_apis=False,                       # if True, append REST requests/responses to /tmp/cloudmanager_apis.log
+        trace_headers=False,                    # if True, and if trace_apis is True, include <large> headers in trace
+        show_modified=True,
+        simulator=False,                        # if True, it is running on simulator
+    )
+
+    if module.params['feature_flags'] is not None and feature_name in module.params['feature_flags']:
+        return module.params['feature_flags'][feature_name]
+    if feature_name in default_flags:
+        return default_flags[feature_name]
+    module.fail_json(msg="Internal error: unexpected feature flag: %s" % feature_name)
 
 
 class CloudManagerRestAPI(object):
@@ -113,6 +144,10 @@ class CloudManagerRestAPI(object):
         self.url = 'https://'
         self.api_root_path = None
         self.check_required_library()
+        if has_feature(module, 'trace_apis'):
+            logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s')
+        self.log_headers = has_feature(module, 'trace_headers')     # requires trace_apis to do anything
+        self.simulator = has_feature(module, 'simulator')
         self.token_type, self.token = self.get_token()
 
     def check_required_library(self):
@@ -124,8 +159,6 @@ class CloudManagerRestAPI(object):
 
     def send_request(self, method, api, params, json=None, data=None, header=None, authorized=True):
         ''' send http request and process response, including error conditions '''
-        if params is not None:
-            self.module.fail_json(msg='params is not implemented.  api=%s, params=%s' % (api, repr(params)))
         url = self.url + api
         headers = {
             'Content-type': "application/json",
@@ -135,14 +168,15 @@ class CloudManagerRestAPI(object):
             headers['Authorization'] = self.token_type + " " + self.token
         if header is not None:
             headers.update(header)
-        return self._send_request(method, url, json, data, headers)
+        return self._send_request(method, url, params, json, data, headers)
 
-    def _send_request(self, method, url, json=None, data=None, headers=None):
+    def _send_request(self, method, url, params, json, data, headers):
         json_dict = None
         json_error = None
         error_details = None
         on_cloud_request_id = None
         response = None
+        status_code = None
 
         def get_json(response):
             ''' extract json, and error message if present '''
@@ -154,28 +188,34 @@ class CloudManagerRestAPI(object):
             success_code = [200, 201, 202]
             if response.status_code not in success_code:
                 error = json.get('message')
+                self.log_error(response.status_code, 'HTTP error: %s' % error)
             return json, error
 
+        self.log_request(method=method, url=url, params=params, json=json, data=data, headers=headers)
         try:
-            response = requests.request(method, url, headers=headers, timeout=self.timeout, json=json, data=data)
+            response = requests.request(method, url, headers=headers, timeout=self.timeout, params=params, json=json, data=data)
             status_code = response.status_code
             if status_code >= 300 or status_code < 200:
+                self.log_error(status_code, 'HTTP status code error: %s' % response.content)
                 return response.content, str(status_code), on_cloud_request_id
             # If the response was successful, no Exception will be raised
             json_dict, json_error = get_json(response)
             if response.headers.get('OnCloud-Request-Id', '') != '':
                 on_cloud_request_id = response.headers.get('OnCloud-Request-Id')
         except requests.exceptions.HTTPError as err:
-            __, json_error = get_json(response)
-            if json_error is None:
-                error_details = str(err)
-            # If an error was reported in the json payload, it is handled below
+            self.log_error(status_code, 'HTTP error: %s' % err)
+            error_details = str(err)
         except requests.exceptions.ConnectionError as err:
+            self.log_error(status_code, 'Connection error: %s' % err)
             error_details = str(err)
         except Exception as err:
+            self.log_error(status_code, 'Other error: %s' % err)
             error_details = str(err)
         if json_error is not None:
+            self.log_error(status_code, 'Endpoint error: %d: %s' % (status_code, json_error))
             error_details = json_error
+        if response:
+            self.log_debug(status_code, response.content)
         return json_dict, error_details, on_cloud_request_id
 
     # If an error was reported in the json payload, it is handled below
@@ -256,3 +296,22 @@ class CloudManagerRestAPI(object):
                 response = result
                 break
         return response['status'], response['error'], None
+
+    def log_error(self, status_code, message):
+        LOG.error("%s: %s", status_code, message)
+
+    def log_debug(self, status_code, content):
+        LOG.debug("%s: %s", status_code, content)
+
+    def log_request(self, method, params, url, json, data, headers):
+        contents = {
+            'method': method,
+            'url': url,
+            'json': json,
+            'data': data
+        }
+        if params:
+            contents['params'] = params
+        if self.log_headers:
+            contents['headers'] = headers
+        self.log_debug('sending', repr(contents))
