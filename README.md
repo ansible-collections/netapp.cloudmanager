@@ -1,3 +1,6 @@
+[![Documentation](https://img.shields.io/badge/docs-brightgreen.svg)](https://docs.ansible.com/ansible/devel/collections/netapp/cloudmanager/index.html)
+![example workflow](https://github.com/ansible-collections/netapp.cloudmanager/actions/workflows/main.yml/badge.svg)
+[![codecov](https://codecov.io/gh/ansible-collections/netapp.cloudmanager/branch/main/graph/badge.svg?token=weBYkksxSi)](https://codecov.io/gh/ansible-collections/netapp.cloudmanager)
 # Ansible Collection - netapp.cloudmanager
 
 Copyright (c) 2021 NetApp, Inc. All rights reserved.
