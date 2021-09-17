@@ -177,3 +177,49 @@ class TestMyModule(unittest.TestCase):
             my_obj.apply()
         print('Info: test_create_cloudmanager_cvo_gcp_ha_pass: %s' % repr(exc.value))
         assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    def test_change_cloudmanager_cvo_gcp(self, get_cvo, get_property, update_svm_password, update_cvo_tags, update_tier_level, get_token):
+        set_module_args(self.set_default_args_pass_check())
+
+        modify = ['svm_password', 'gcp_labels', 'tier_level']
+
+        my_cvo = {
+            'name': 'Dummyname',
+            'publicId': 'test',
+            'svm_password': 'diffpassword',
+            'gcp_labels': [{'labelKey': 'abc', 'labelValue': 'a124'}, {'labelKey': 'def', 'labelValue': 'b3424'}],
+            'tier_level': 'Blob'
+        }
+        get_cvo.return_value = my_cvo, None
+        cvo_property = {'name': 'Dummyname',
+                        'publicId': 'test',
+                        'ontapClusterProperties': {'capacityTierInfo': {'tierLevel': 'standard'},
+                                                   'writingSpeedState': 'NORMAL'},
+                        'providerProperties': {
+                            'regionName': 'us-west4',
+                            'zoneName': ['us-west-1b'],
+                            'instanceType': 'n1-standard-8',
+                            'subnetCidr': '10.150.0.0/20',
+                            'projectName': 'project-test'}
+                        }
+        get_property.return_value = cvo_property, None
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+
+        for item in modify:
+            if item == 'svm_password':
+                update_svm_password.return_value = True, None
+            elif item == 'gcp_labels':
+                update_cvo_tags.return_value = True, None
+            elif item == 'tier_level':
+                update_tier_level.return_value = True, None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_change_cloudmanager_cvo_gcp: %s' % repr(exc.value))

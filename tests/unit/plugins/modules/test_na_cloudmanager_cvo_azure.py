@@ -75,7 +75,7 @@ class TestMyModule(unittest.TestCase):
             'resource_group': 'test',
             'subnet_id': 'subnet-test',
             'subscription_id': 'test',
-            'cidr': 'test',
+            'cidr': '10.0.0.0/24',
             'svm_password': 'password',
             'refresh_token': 'myrefresh_token',
             'is_ha': False
@@ -90,7 +90,7 @@ class TestMyModule(unittest.TestCase):
             'vnet_id': 'vpc-test',
             'resource_group': 'test',
             'subscription_id': 'test',
-            'cidr': 'test',
+            'cidr': '10.0.0.0/24',
             'subnet_id': 'subnet-test',
             'svm_password': 'password',
             'refresh_token': 'myrefresh_token',
@@ -106,7 +106,7 @@ class TestMyModule(unittest.TestCase):
             'vnet_id': 'vpc-test',
             'resource_group': 'test',
             'subscription_id': 'test',
-            'cidr': 'test',
+            'cidr': '10.0.0.0/24',
             'subnet_id': 'subnet-test',
             'svm_password': 'password',
             'refresh_token': 'myrefresh_token',
@@ -191,7 +191,7 @@ class TestMyModule(unittest.TestCase):
         my_obj = my_module()
 
         my_cvo = {
-            'name': 'test',
+            'name': 'Dummyname',
             'publicId': 'test'}
         get_working_environment_details_by_name.return_value = my_cvo, None
         get_delete_api.return_value = None, None, None
@@ -200,4 +200,57 @@ class TestMyModule(unittest.TestCase):
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
         print('Info: test_delete_cloudmanager_cvo_azure_pass: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    def test_change_cloudmanager_cvo_azure(self, get_cvo, get_property, update_svm_password, update_cvo_tags, update_tier_level, get_token):
+        set_module_args(self.set_default_args_pass_check())
+
+        modify = ['svm_password', 'azure_tag', 'tier_level']
+
+        my_cvo = {
+            'name': 'Dummyname',
+            'publicId': 'test',
+            'svm_password': 'diffpassword',
+            'azure_tag': [{'tagKey': 'abc', 'tagValue': 'a124'}, {'tagKey': 'def', 'tagValue': 'b3424'}],
+        }
+        get_cvo.return_value = my_cvo, None
+
+        cvo_property = {'name': 'Dummyname',
+                        'publicId': 'test',
+                        'ontapClusterProperties': {'capacityTierInfo': {'tierLevel': 'normal'}},
+                        'providerProperties': {
+                            'regionName': 'westus',
+                            'resourceGroup': {
+                                'name': 'Dummyname-rg',
+                                'location': 'westus',
+                                'tags': {
+                                    'DeployedByOccm': 'true'
+                                }
+                            },
+                            'vnetCidr': '10.0.0.0/24',
+                            'tags': {
+                                'DeployedByOccm': 'true'
+                            }}
+                        }
+        get_property.return_value = cvo_property, None
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+
+        for item in modify:
+            if item == 'svm_password':
+                update_svm_password.return_value = True, None
+            elif item == 'azure_tag':
+                update_cvo_tags.return_value = True, None
+            elif item == 'tier_level':
+                update_tier_level.return_value = True, None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_change_cloudmanager_cvo_azure: %s' % repr(exc.value))
         assert exc.value.args[0]['changed']
