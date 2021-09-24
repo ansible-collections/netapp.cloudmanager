@@ -57,12 +57,31 @@ options:
   license_type:
     description:
     - The type of license to use.
-    - For single node ['azure-cot-explore-paygo', 'azure-cot-standard-paygo', 'azure-cot-premium-paygo', 'azure-cot-premium-byol']
-    - For HA ['azure-ha-cot-standard-paygo', 'azure-ha-cot-premium-paygo', 'azure-ha-cot-premium-byol']
-    choices: ['azure-cot-standard-paygo', 'azure-cot-premium-paygo', 'azure-cot-premium-byol', 'azure-cot-explore-paygo',
-    'azure-ha-cot-standard-paygo', 'azure-ha-cot-premium-paygo', 'azure-ha-cot-premium-byol']
+    - For single node ['azure-cot-explore-paygo', 'azure-cot-standard-paygo', 'azure-cot-premium-paygo', \
+     'azure-cot-premium-byol', 'capacity-paygo']
+    - For HA ['azure-ha-cot-standard-paygo', 'azure-ha-cot-premium-paygo', 'azure-ha-cot-premium-byol', \
+     'ha-capacity-paygo']
+    - Use capacity-paygo or ha-capacity-paygo for HA on selecting Bring Your Own License type Capacity-Based or Freemium.
+    - Use azure-cot-premium-boyl or azure-ha-cot-permium-boyl for HA on selecting Bring Your Own License type Node-Based.
+    choices: ['azure-cot-standard-paygo', 'azure-cot-premium-paygo', 'azure-cot-premium-byol', \
+     'azure-cot-explore-paygo', 'azure-ha-cot-standard-paygo', 'azure-ha-cot-premium-paygo', \
+    'azure-ha-cot-premium-byol', 'capacity-paygo', 'ha-capacity-paygo']
     default: 'azure-cot-standard-paygo'
     type: str
+
+  provided_license:
+    description:
+    - Using a NLF license file for BYOL deployment.
+    type: str
+
+  capacity_package_name:
+    description:
+    - Capacity package name is required when selecting a capacity based license.
+    - Essential only available with Bring Your Own License Capacity-Based.
+    - Professional available as an annual contract from a cloud provider or Bring Your Own License Capacity-Based.
+    choices: ['Professional', 'Essential', 'Freemium']
+    type: str
+    version_added: 21.12.0
 
   workspace_id:
     description:
@@ -332,11 +351,11 @@ from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import 
 IMPORT_EXCEPTION = None
 
 AZURE_License_Types = ['azure-cot-standard-paygo', 'azure-cot-premium-paygo', 'azure-cot-premium-byol', 'azure-cot-explore-paygo',
-                       'azure-ha-cot-standard-paygo', 'azure-ha-cot-premium-paygo', 'azure-ha-cot-premium-byol']
+                       'azure-ha-cot-standard-paygo', 'azure-ha-cot-premium-paygo', 'azure-ha-cot-premium-byol', 'capacity-paygo', 'ha-capacity-paygo']
 
 
 class NetAppCloudManagerCVOAZURE:
-    ''' object initialize and class methods '''
+    """ object initialize and class methods """
 
     def __init__(self):
         self.use_rest = False
@@ -347,6 +366,8 @@ class NetAppCloudManagerCVOAZURE:
             instance_type=dict(required=False, type='str', default='Standard_DS4_v2'),
             license_type=dict(required=False, type='str', choices=AZURE_License_Types, default='azure-cot-standard-paygo'),
             workspace_id=dict(required=False, type='str'),
+            capacity_package_name=dict(required=False, type='str', choices=['Professional', 'Essential', 'Freemium']),
+            provided_license=dict(required=False, type='str'),
             subnet_id=dict(required=True, type='str'),
             vnet_id=dict(required=True, type='str'),
             vnet_resource_group=dict(required=False, type='str'),
@@ -388,6 +409,10 @@ class NetAppCloudManagerCVOAZURE:
             argument_spec=self.argument_spec,
             required_one_of=[['refresh_token', 'sa_client_id']],
             required_together=[['sa_client_id', 'sa_secret_key']],
+            required_if=[
+                ['license_type', 'capacity-paygo', ['capacity_package_name']],
+                ['license_type', 'ha-capacity-paygo', ['capacity_package_name']],
+            ],
             supports_check_mode=True
         )
 
@@ -443,14 +468,20 @@ class NetAppCloudManagerCVOAZURE:
                 "enableMonitoring": self.parameters['enable_monitoring'],
                 "vsaMetadata": {
                     "ontapVersion": self.parameters['ontap_version'],
-                    "useLatestVersion": self.parameters['use_latest_version'],
                     "licenseType": self.parameters['license_type'],
+                    "useLatestVersion": self.parameters['use_latest_version'],
                     "instanceType": self.parameters['instance_type']}
                 }
 
         if self.parameters['capacity_tier'] == "Blob":
             json.update({"capacityTier": self.parameters['capacity_tier'],
                          "tierLevel": self.parameters['tier_level']})
+
+        if self.parameters.get('provided_license') is not None:
+            json['vsaMetadata'].update({"providedLicense": self.parameters['provided_license']})
+
+        if self.parameters.get('capacity_package_name') is not None:
+            json['vsaMetadata'].update({"capacityPackageName": self.parameters['capacity_package_name']})
 
         if self.parameters.get('cidr') is not None:
             json.update({"cidr": self.parameters['cidr']})
@@ -554,6 +585,7 @@ class NetAppCloudManagerCVOAZURE:
         """
         Delete AZURE CVO
         """
+
         api_url = '%s/working-environments/%s' % (self.rest_api.api_root_path, we_id)
         response, error, on_cloud_request_id = self.rest_api.delete(api_url, None, header=self.headers)
         if error is not None:
@@ -576,6 +608,12 @@ class NetAppCloudManagerCVOAZURE:
             if self.parameters.get('platform_serial_number_node1') is None or self.parameters.get('platform_serial_number_node2') is None:
                 self.module.fail_json(msg="both platform_serial_number_node1 and platform_serial_number_node2 parameters are required"
                                           "when having ha type as true and license_type as azure-ha-cot-premium-byol")
+
+        if self.parameters.get('capacity_package_name') is not None:
+            if self.parameters['is_ha'] is True and self.parameters['license_type'] != 'ha-capacity-paygo':
+                self.module.fail_json(msg="license_type value must be ha-capacity-paygo")
+            if self.parameters['is_ha'] is False and self.parameters['license_type'] != 'capacity-paygo':
+                self.module.fail_json(msg="license_type value must be capacity-paygo")
 
     def apply(self):
         """

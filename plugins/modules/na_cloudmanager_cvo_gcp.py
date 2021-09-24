@@ -122,12 +122,31 @@ options:
   license_type:
     description:
     - The type of license to use.
-    - Single node ['gcp-cot-explore-paygo', 'gcp-cot-standard-paygo', 'gcp-cot-premium-paygo', 'gcp-cot-premium-byol'].
-    - HA ['gcp-ha-cot-explore-paygo', 'gcp-ha-cot-standard-paygo', 'gcp-ha-cot-premium-paygo', 'gcp-cot-premium-byol'].
-    choices: ['gcp-cot-standard-paygo', 'gcp-cot-explore-paygo', 'gcp-cot-premium-paygo', 'gcp-cot-premium-byol',
-    'gcp-ha-cot-standard-paygo', 'gcp-ha-cot-premium-paygo', 'gcp-ha-cot-explore-paygo', 'gcp-ha-cot-premium-byol']
+    - Single node ['gcp-cot-explore-paygo', 'gcp-cot-standard-paygo', 'gcp-cot-premium-paygo', 'gcp-cot-premium-byol', \
+     'capacity-paygo'].
+    - HA ['gcp-ha-cot-explore-paygo', 'gcp-ha-cot-standard-paygo', 'gcp-ha-cot-premium-paygo', 'gcp-cot-premium-byol', \
+     'ha-capacity-paygo'].
+    - Use capacity-paygo or ha-capacity-paygo for HA on selecting Bring Your Own License type Capacity-Based or Freemium.
+    - Use gcp-cot-premium-boyl or gcp-ha-cot-permium-boyl for HA on selecting Bring Your Own License type Node-Based.
+    choices: ['gcp-cot-standard-paygo', 'gcp-cot-explore-paygo', 'gcp-cot-premium-paygo', 'gcp-cot-premium-byol', \
+     'gcp-ha-cot-standard-paygo', 'gcp-ha-cot-premium-paygo', 'gcp-ha-cot-explore-paygo', 'gcp-ha-cot-premium-byol', \
+     'capacity-paygo', 'ha-capacity-paygo']
     type: str
     default: 'gcp-cot-standard-paygo'
+
+  provided_license:
+    description:
+    - Using a NLF license file for BYOL deployment
+    type: str
+
+  capacity_package_name:
+    description:
+    - Capacity package name is required when selecting a capacity based license.
+    - Essential only available with Bring Your Own License Capacity-Based.
+    - Professional available as an annual contract from a cloud provider or Bring Your Own License Capacity-Based.
+    choices: ['Professional', 'Essential', 'Freemium']
+    type: str
+    version_added: 21.12.0
 
   mediator_zone:
     description:
@@ -412,7 +431,7 @@ from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import 
 
 GCP_LICENSE_TYPES = ["gcp-cot-standard-paygo", "gcp-cot-explore-paygo", "gcp-cot-premium-paygo", "gcp-cot-premium-byol",
                      "gcp-ha-cot-standard-paygo", "gcp-ha-cot-premium-paygo", "gcp-ha-cot-explore-paygo",
-                     "gcp-ha-cot-premium-byol"]
+                     "gcp-ha-cot-premium-byol", "capacity-paygo", "ha-capacity-paygo"]
 GOOGLE_API_URL = "https://www.googleapis.com/compute/v1/projects"
 
 
@@ -462,6 +481,8 @@ class NetAppCloudManagerCVOGCP:
             tier_level=dict(required=False, type='str', choices=['standard', 'nearline', 'coldline'],
                             default='standard'),
             use_latest_version=dict(required=False, type='bool', default=True),
+            capacity_package_name=dict(required=False, type='str', choices=['Professional', 'Essential', 'Freemium']),
+            provided_license=dict(required=False, type='str'),
             vpc_id=dict(required=True, type='str'),
             vpc0_firewall_rule_name=dict(required=False, type='str'),
             vpc0_node_and_data_connectivity=dict(required=False, type='str'),
@@ -480,6 +501,10 @@ class NetAppCloudManagerCVOGCP:
             argument_spec=self.argument_spec,
             required_one_of=[['refresh_token', 'sa_client_id']],
             required_together=[['sa_client_id', 'sa_secret_key']],
+            required_if=[
+                ['license_type', 'capacity-paygo', ['capacity_package_name']],
+                ['license_type', 'ha-capacity-paygo', ['capacity_package_name']],
+            ],
             supports_check_mode=True
         )
         self.na_helper = NetAppModule()
@@ -513,6 +538,12 @@ class NetAppCloudManagerCVOGCP:
                             self.module.fail_json(msg)
                         self.parameters['nss_account'] = response
 
+        if self.parameters.get('capacity_package_name') is not None:
+            if self.parameters['is_ha'] is True and self.parameters['license_type'] != 'ha-capacity-paygo':
+                self.module.fail_json(msg="license_type value must be ha-capacity-paygo")
+            if self.parameters['is_ha'] is False and self.parameters['license_type'] != 'capacity-paygo':
+                self.module.fail_json(msg="license_type value must be capacity-paygo")
+
         json = {"name": self.parameters['name'],
                 "region": self.parameters['zone'],
                 "tenantId": self.parameters['workspace_id'],
@@ -529,6 +560,7 @@ class NetAppCloudManagerCVOGCP:
                 "vsaMetadata": {
                     "ontapVersion": self.parameters['ontap_version'],
                     "licenseType": self.parameters['license_type'],
+                    "useLatestVersion": self.parameters['use_latest_version'],
                     "instanceType": self.parameters['instance_type']}
                 }
 
@@ -537,8 +569,11 @@ class NetAppCloudManagerCVOGCP:
             if self.parameters.get('gcp_encryption_parameters') is not None:
                 json.update({"gcpEncryptionParameters": {"key": self.parameters['gcp_encryption_parameters']}})
 
-        if self.parameters.get('use_latest_version') is not None:
-            json['vsaMetadata'].update({'useLatestVersion': self.parameters['use_latest_version']})
+        if self.parameters.get('provided_license') is not None:
+            json['vsaMetadata'].update({"providedLicense": self.parameters['provided_license']})
+
+        if self.parameters.get('capacity_package_name') is not None:
+            json['vsaMetadata'].update({"capacityPackageName": self.parameters['capacity_package_name']})
 
         if self.parameters.get('project_id'):
             json.update({'project': self.parameters['project_id']})

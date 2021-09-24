@@ -31,6 +31,12 @@ This collection follows the [Ansible project's Code of Conduct](https://docs.ans
 https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
+
+## 21.12.0
+
+## New Options
+  - Adding new parameter `capacity_package_name` for all CVOs creation with capacity based license type capacity-paygo or ha-capacity-paygo for HA.
+
 ## 21.11.0
 
 ### Minor Changes
