@@ -81,7 +81,8 @@ class TestMyModule(unittest.TestCase):
             'gcp_volume_type': 'pd-ssd',
             'gcp_volume_size': 500,
             'gcp_volume_size_unit': 'GB',
-            'project_id': 'project-test'
+            'project_id': 'project-test',
+            'tier_level': 'standard'
         })
 
     def set_args_create_cloudmanager_cvo_gcp(self):
@@ -111,6 +112,25 @@ class TestMyModule(unittest.TestCase):
             self.rest_api = MockCMConnection()
         print('Info: %s' % exc.value.args[0]['msg'])
 
+    def set_args_delete_cloudmanager_cvo_gcp(self):
+        return dict({
+            'state': 'absent',
+            'name': 'Dummyname',
+            'client_id': 'test',
+            'zone': 'us-west-1',
+            'vpc_id': 'vpc-test',
+            'subnet_id': 'subnet-test',
+            'svm_password': 'password',
+            'refresh_token': 'myrefresh_token',
+            'is_ha': False,
+            'gcp_service_account': 'test_account',
+            'data_encryption_type': 'GCP',
+            'gcp_volume_type': 'pd-ssd',
+            'gcp_volume_size': 500,
+            'gcp_volume_size_unit': 'GB',
+            'project_id': 'project-test'
+        })
+
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
     def test_module_fail_when_required_args_present(self, get_token):
         ''' required arguments are reported as errors '''
@@ -127,7 +147,8 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
-    def test_create_cloudmanager_cvo_gcp_pass(self, get_post_api, get_working_environment_details_by_name, get_nss, get_tenant, wait_on_completion, get_token):
+    def test_create_cloudmanager_cvo_gcp_pass(self, get_post_api, get_working_environment_details_by_name, get_nss,
+                                              get_tenant, wait_on_completion, get_token):
         set_module_args(self.set_args_create_cloudmanager_cvo_gcp())
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
@@ -179,12 +200,168 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
+    def test_create_cloudmanager_cvo_gcp_capacity_license_pass(self, get_post_api,
+                                                               get_working_environment_details_by_name, get_nss,
+                                                               get_tenant, wait_on_completion, get_token):
+        data = self.set_args_create_cloudmanager_cvo_gcp()
+        data['license_type'] = 'capacity-paygo'
+        data['capacity_package_name'] = 'Essential'
+        set_module_args(data)
+
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+
+        response = {'publicId': 'abcdefg12345'}
+        get_post_api.return_value = response, None, None
+        get_working_environment_details_by_name.return_value = None, None
+        get_nss.return_value = 'nss-test', None
+        get_tenant.return_value = 'test', None
+        wait_on_completion.return_value = None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_create_cloudmanager_cvo_gcp_pass: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
+    def test_create_cloudmanager_cvo_gcp_ha_capacity_license_pass(self, get_post_api,
+                                                                  get_working_environment_details_by_name, get_nss,
+                                                                  get_tenant, wait_on_completion, get_token):
+        data = self.set_args_create_cloudmanager_cvo_gcp()
+        data['license_type'] = 'ha-capacity-paygo'
+        data['capacity_package_name'] = 'Essential'
+        data['is_ha'] = True
+        data['subnet0_node_and_data_connectivity'] = 'default'
+        data['subnet1_cluster_connectivity'] = 'subnet2'
+        data['subnet2_ha_connectivity'] = 'subnet3'
+        data['subnet3_data_replication'] = 'subnet1'
+        data['vpc0_node_and_data_connectivity'] = 'default'
+        data['vpc1_cluster_connectivity'] = 'vpc2'
+        data['vpc2_ha_connectivity'] = 'vpc3'
+        data['vpc3_data_replication'] = 'vpc1'
+        set_module_args(data)
+
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+
+        response = {'publicId': 'abcdefg12345'}
+        get_post_api.return_value = response, None, None
+        get_working_environment_details_by_name.return_value = None, None
+        get_nss.return_value = 'nss-test', None
+        get_tenant.return_value = 'test', None
+        wait_on_completion.return_value = None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_create_cloudmanager_cvo_gcp_pass: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
+    def test_create_cloudmanager_cvo_gcp_nodebase_license_pass(self, get_post_api,
+                                                               get_working_environment_details_by_name, get_nss,
+                                                               get_tenant, wait_on_completion, get_token):
+        data = self.set_args_create_cloudmanager_cvo_gcp()
+        data['license_type'] = 'gcp-cot-premium-byol'
+        data['platform_serial_number'] = '12345678'
+        set_module_args(data)
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+
+        response = {'publicId': 'abcdefg12345'}
+        get_post_api.return_value = response, None, None
+        get_working_environment_details_by_name.return_value = None, None
+        get_nss.return_value = 'nss-test', None
+        get_tenant.return_value = 'test', None
+        wait_on_completion.return_value = None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_create_cloudmanager_cvo_gcp_pass: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
+    def test_create_cloudmanager_cvo_gcp_ha_nodebase_license_pass(self, get_post_api,
+                                                                  get_working_environment_details_by_name, get_nss,
+                                                                  get_tenant, wait_on_completion, get_token):
+        data = self.set_args_create_cloudmanager_cvo_gcp()
+        data['is_ha'] = True
+        data['subnet0_node_and_data_connectivity'] = 'default'
+        data['subnet1_cluster_connectivity'] = 'subnet2'
+        data['subnet2_ha_connectivity'] = 'subnet3'
+        data['subnet3_data_replication'] = 'subnet1'
+        data['vpc0_node_and_data_connectivity'] = 'default'
+        data['vpc1_cluster_connectivity'] = 'vpc2'
+        data['vpc2_ha_connectivity'] = 'vpc3'
+        data['vpc3_data_replication'] = 'vpc1'
+        data['platform_serial_number_node1'] = '12345678'
+        data['platform_serial_number_node2'] = '23456789'
+        data['license_type'] = 'gcp-ha-cot-premium-byol'
+        set_module_args(data)
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+
+        response = {'publicId': 'abcdefg12345'}
+        get_post_api.return_value = response, None, None
+        get_working_environment_details_by_name.return_value = None, None
+        get_nss.return_value = 'nss-test', None
+        get_tenant.return_value = 'test', None
+        wait_on_completion.return_value = None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_create_cloudmanager_cvo_gcp_pass: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.delete')
+    def test_delete_cloudmanager_cvo_gcp_pass(self, get_delete_api, get_working_environment_details_by_name,
+                                              wait_on_completion, get_token):
+        set_module_args(self.set_args_delete_cloudmanager_cvo_gcp())
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+        my_cvo = {
+            'name': 'Dummyname',
+            'publicId': 'test'}
+        get_working_environment_details_by_name.return_value = my_cvo, None
+
+        get_delete_api.return_value = None, None, 'test'
+        wait_on_completion.return_value = None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_delete_cloudmanager_cvo_gcp_pass: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
-    def test_change_cloudmanager_cvo_gcp(self, get_cvo, get_property, update_svm_password, update_cvo_tags, update_tier_level, get_token):
+    def test_change_cloudmanager_cvo_gcp(self, get_cvo, get_property, update_svm_password, update_cvo_tags,
+                                         update_tier_level, get_token):
         set_module_args(self.set_default_args_pass_check())
 
         modify = ['svm_password', 'gcp_labels', 'tier_level']
@@ -194,7 +371,7 @@ class TestMyModule(unittest.TestCase):
             'publicId': 'test',
             'svm_password': 'diffpassword',
             'gcp_labels': [{'labelKey': 'abc', 'labelValue': 'a124'}, {'labelKey': 'def', 'labelValue': 'b3424'}],
-            'tier_level': 'Blob'
+            'tier_level': 'standard'
         }
         get_cvo.return_value = my_cvo, None
         cvo_property = {'name': 'Dummyname',

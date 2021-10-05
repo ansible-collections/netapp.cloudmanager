@@ -173,9 +173,133 @@ class TestMyModule(unittest.TestCase):
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_vpc')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
+    def test_create_cloudmanager_cvo_aws_capacity_license_pass(self, get_post_api,
+                                                               get_working_environment_details_by_name, get_nss,
+                                                               get_tenant, get_vpc, wait_on_completion, get_token):
+        data = self.set_args_create_cloudmanager_cvo_aws()
+        data['license_type'] = 'capacity-paygo'
+        data['capacity_package_name'] = 'Essential'
+        set_module_args(data)
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+
+        response = {'publicId': 'abcdefg12345'}
+        get_working_environment_details_by_name.return_value = None, None
+        get_post_api.return_value = response, None, None
+        get_nss.return_value = 'nss-test', None
+        get_tenant.return_value = 'test', None
+        get_vpc.return_value = 'test'
+        wait_on_completion.return_value = None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_create_cloudmanager_cvo_aws_pass: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_vpc')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
+    def test_create_cloudmanager_cvo_aws_ha_capacity_license_pass(self, get_post_api,
+                                                                  get_working_environment_details_by_name, get_nss,
+                                                                  get_tenant, get_vpc, wait_on_completion, get_token):
+        data = self.set_args_create_cloudmanager_cvo_aws()
+        data['is_ha'] = True
+        data['license_type'] = 'ha-capacity-paygo'
+        data['capacity_package_name'] = 'Essential'
+        data.pop('subnet_id')
+        set_module_args(data)
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+
+        response = {'publicId': 'abcdefg12345'}
+        get_working_environment_details_by_name.return_value = None, None
+        get_post_api.return_value = response, None, None
+        get_nss.return_value = 'nss-test', None
+        get_tenant.return_value = 'test', None
+        get_vpc.return_value = 'test'
+        wait_on_completion.return_value = None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_create_cloudmanager_cvo_aws_ha_pass: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_vpc')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
+    def test_create_cloudmanager_cvo_aws_nodebase_license_pass(self, get_post_api,
+                                                               get_working_environment_details_by_name, get_nss,
+                                                               get_tenant, get_vpc, wait_on_completion, get_token):
+        data = self.set_args_create_cloudmanager_cvo_aws()
+        data['license_type'] = 'cot-premium-byol'
+        data['platform_serial_number'] = '12345678'
+        set_module_args(data)
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+
+        response = {'publicId': 'abcdefg12345'}
+        get_working_environment_details_by_name.return_value = None, None
+        get_post_api.return_value = response, None, None
+        get_nss.return_value = 'nss-test', None
+        get_tenant.return_value = 'test', None
+        get_vpc.return_value = 'test'
+        wait_on_completion.return_value = None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_create_cloudmanager_cvo_aws_pass: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_vpc')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
+    def test_create_cloudmanager_cvo_aws_ha_nodebase_license_pass(self, get_post_api,
+                                                                  get_working_environment_details_by_name, get_nss,
+                                                                  get_tenant, get_vpc, wait_on_completion, get_token):
+        data = self.set_args_create_cloudmanager_cvo_aws()
+        data['license_type'] = 'ha-cot-premium-byol'
+        data['platform_serial_number_node1'] = '12345678'
+        data['platform_serial_number_node2'] = '23456789'
+        set_module_args(data)
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+
+        response = {'publicId': 'abcdefg12345'}
+        get_working_environment_details_by_name.return_value = None, None
+        get_post_api.return_value = response, None, None
+        get_nss.return_value = 'nss-test', None
+        get_tenant.return_value = 'test', None
+        get_vpc.return_value = 'test'
+        wait_on_completion.return_value = None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_create_cloudmanager_cvo_aws_pass: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.delete')
-    def test_delete_cloudmanager_cvo_aws_pass(self, get_delete_api, get_working_environment_details_by_name, wait_on_completion, get_token):
+    def test_delete_cloudmanager_cvo_aws_pass(self, get_delete_api, get_working_environment_details_by_name,
+                                              wait_on_completion, get_token):
         set_module_args(self.set_args_delete_cloudmanager_cvo_aws())
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
@@ -198,7 +322,8 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
-    def test_change_cloudmanager_cvo_aws(self, get_cvo, get_property, update_svm_password, update_cvo_tags, update_tier_level, get_token):
+    def test_change_cloudmanager_cvo_aws(self, get_cvo, get_property, update_svm_password, update_cvo_tags,
+                                         update_tier_level, get_token):
         set_module_args(self.set_default_args_pass_check())
 
         modify = ['svm_password', 'aws_tag', 'tier_level']
