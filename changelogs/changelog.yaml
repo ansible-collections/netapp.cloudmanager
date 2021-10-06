@@ -28,6 +28,31 @@ releases:
     - DEVOPS-4164.yaml
     - DEVOPS-4200.yaml
     release_date: '2021-09-01'
+  21.11.0:
+    changes:
+      bugfixes:
+      - na_cloudmanager_connector_gcp - typeError when using proxy certificates.
+      minor_changes:
+      - Add CVO modification unit tests
+      - Adding new parameter ``capacity_package_name`` for all CVOs creation with
+        capacity based ``license_type`` capacity-paygo or ha-capacity-paygo for HA.
+      - all modules - better error reporting if refresh_token is not valid.
+      - na_cloudmanager_connector_gcp - automatically fetch client_id for delete.
+      - na_cloudmanager_connector_gcp - make the module idempotent for create and
+        delete.
+      - na_cloudmanager_connector_gcp - report client_id if connector already exists.
+      - na_cloudmanager_cvo_aws - Add unit tests for capacity based license support.
+      - na_cloudmanager_cvo_azure - Add unit tests for capacity based license support.
+      - na_cloudmanager_cvo_gcp - Add unit tests for capacity based license support
+        and delete cvo.
+      - netapp.py - improve error handling with error content.
+    fragments:
+    - DEVOPS-4267.yaml
+    - DEVOPS-4292.yaml
+    - DEVOPS-4303.yaml
+    - DEVOPS-4321.yaml
+    - DEVOPS-4327.yaml
+    release_date: '2021-10-06'
   21.3.0:
     modules:
     - description: NetApp Cloud Manager Aggregate

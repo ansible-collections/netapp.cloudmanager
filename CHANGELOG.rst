@@ -5,6 +5,28 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.11.0
+========
+
+Minor Changes
+-------------
+
+- Add CVO modification unit tests
+- Adding new parameter ``capacity_package_name`` for all CVOs creation with capacity based ``license_type`` capacity-paygo or ha-capacity-paygo for HA.
+- all modules - better error reporting if refresh_token is not valid.
+- na_cloudmanager_connector_gcp - automatically fetch client_id for delete.
+- na_cloudmanager_connector_gcp - make the module idempotent for create and delete.
+- na_cloudmanager_connector_gcp - report client_id if connector already exists.
+- na_cloudmanager_cvo_aws - Add unit tests for capacity based license support.
+- na_cloudmanager_cvo_azure - Add unit tests for capacity based license support.
+- na_cloudmanager_cvo_gcp - Add unit tests for capacity based license support and delete cvo.
+- netapp.py - improve error handling with error content.
+
+Bugfixes
+--------
+
+- na_cloudmanager_connector_gcp - typeError when using proxy certificates.
+
 v21.10.0
 ========
 
