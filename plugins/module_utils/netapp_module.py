@@ -197,7 +197,7 @@ class NetAppModule(object):
             api += self.parameters['source_working_environment_id']
             source_working_env_detail, error, dummy = rest_api.get(api, None, header=headers)
             if error:
-                return None, None, error
+                return None, None, "Error getting WE info: %s: %s" % (error, source_working_env_detail)
         elif self.parameters.get('source_working_environment_name'):
             source_working_env_detail, error = self.get_working_environment_details_by_name(rest_api, headers, 'source_working_environment_name')
             if error:
@@ -210,7 +210,7 @@ class NetAppModule(object):
             api += self.parameters['destination_working_environment_id']
             dest_working_env_detail, error, dummy = rest_api.get(api, None, header=headers)
             if error:
-                return None, None, error
+                return None, None, "Error getting WE info: %s: %s" % (error, dest_working_env_detail)
         elif self.parameters.get('destination_working_environment_name'):
             dest_working_env_detail, error = self.get_working_environment_details_by_name(rest_api, headers, 'destination_working_environment_name')
             if error:
