@@ -21,6 +21,9 @@ collections:
 - ansible version >= 2.9
 - requests >= 2.20
 
+# Module documentation
+https://docs.ansible.com/ansible/devel/collections/netapp/cloudmanager/
+
 # Need help
 Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
