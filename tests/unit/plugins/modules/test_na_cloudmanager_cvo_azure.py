@@ -322,29 +322,39 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
-    def test_change_cloudmanager_cvo_azure(self, get_cvo, get_property, update_svm_password, update_cvo_tags,
+    def test_change_cloudmanager_cvo_azure(self, get_cvo, get_property, get_details, update_svm_password, update_cvo_tags,
                                            update_tier_level, get_token):
         set_module_args(self.set_default_args_pass_check())
 
         modify = ['svm_password', 'azure_tag', 'tier_level']
 
         my_cvo = {
-            'name': 'Dummyname',
+            'name': 'TestA',
             'publicId': 'test',
-            'svm_password': 'diffpassword',
-            'azure_tag': [{'tagKey': 'abc', 'tagValue': 'a124'}, {'tagKey': 'def', 'tagValue': 'b3424'}],
+            'svm_password': 'password',
+            'isHA': False,
+            'azure_tag': [{'tag_key': 'keya', 'tag_value': 'valuea'}, {'tag_key': 'keyb', 'tag_value': 'valueb'}],
         }
         get_cvo.return_value = my_cvo, None
 
-        cvo_property = {'name': 'Dummyname',
+        cvo_property = {'name': 'TestA',
                         'publicId': 'test',
-                        'ontapClusterProperties': {'capacityTierInfo': {'tierLevel': 'normal'}},
+                        'ontapClusterProperties': {
+                            'capacityTierInfo': {'tierLevel': 'normal'},
+                            'licensePackageName': 'Professional',
+                            'licenseType': {'capacityLimit': {'size': 2000.0, 'unit': 'TB'},
+                                            'name': 'Cloud Volumes ONTAP Capacity Based Charging'},
+                            'ontapVersion': '9.10.0.T1.azure',
+                            'writingSpeedState': 'NORMAL'},
                         'providerProperties': {
+                            'cloudProviderAccountId': 'CloudProviderAccount-abcdwxyz',
                             'regionName': 'westus',
+                            'instanceType': 'Standard_DS4_v2',
                             'resourceGroup': {
-                                'name': 'Dummyname-rg',
+                                'name': 'TestA-rg',
                                 'location': 'westus',
                                 'tags': {
                                     'DeployedByOccm': 'true'
@@ -353,9 +363,20 @@ class TestMyModule(unittest.TestCase):
                             'vnetCidr': '10.0.0.0/24',
                             'tags': {
                                 'DeployedByOccm': 'true'
-                            }}
+                            }},
+                        'tenantId': 'Tenant-abCdEfg1',
+                        'workingEnvironmentTyp': 'VSA'
                         }
         get_property.return_value = cvo_property, None
+        cvo_details = {'cloudProviderName': 'Azure',
+                       'isHA': False,
+                       'name': 'TestA',
+                       'ontapClusterProperties': None,
+                       'publicId': 'test',
+                       'status': None,
+                       'userTags': {'DeployedByOccm': 'true', 'key1': 'value1'},
+                       'workingEnvironmentType': 'VSA'}
+        get_details.return_value = cvo_details, None
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
 

@@ -35,6 +35,11 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.12.0
+
+### Minor Changes
+  - Handle extra azure_tag on AZURE CVO and extra gcp_labels on GCP CVO HA on modification. gcp_labels modification on GCP CVO does not support remove labels.
+
 ## 21.11.0
 
 ## New Options

@@ -81,7 +81,7 @@ class TestMyModule(unittest.TestCase):
             'gcp_volume_type': 'pd-ssd',
             'gcp_volume_size': 500,
             'gcp_volume_size_unit': 'GB',
-            'project_id': 'project-test',
+            'project_id': 'default-project',
             'tier_level': 'standard'
         })
 
@@ -90,7 +90,7 @@ class TestMyModule(unittest.TestCase):
             'state': 'present',
             'name': 'Dummyname',
             'client_id': 'test',
-            'zone': 'us-west-1',
+            'zone': 'us-west1-b',
             'vpc_id': 'vpc-test',
             'subnet_id': 'subnet-test',
             'svm_password': 'password',
@@ -101,7 +101,8 @@ class TestMyModule(unittest.TestCase):
             'gcp_volume_type': 'pd-ssd',
             'gcp_volume_size': 500,
             'gcp_volume_size_unit': 'GB',
-            'project_id': 'project-test'
+            'gcp_labels': [{'label_key': 'key1', 'label_value': 'value1'}, {'label_key': 'keya', 'label_value': 'valuea'}],
+            'project_id': 'default-project'
         })
 
     def test_module_fail_when_required_args_missing(self):
@@ -358,34 +359,142 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
-    def test_change_cloudmanager_cvo_gcp(self, get_cvo, get_property, update_svm_password, update_cvo_tags,
+    def test_change_cloudmanager_cvo_gcp(self, get_cvo, get_property, get_details, update_svm_password, update_cvo_tags,
                                          update_tier_level, get_token):
-        set_module_args(self.set_default_args_pass_check())
+        set_module_args(self.set_args_create_cloudmanager_cvo_gcp())
 
         modify = ['svm_password', 'gcp_labels', 'tier_level']
 
         my_cvo = {
-            'name': 'Dummyname',
+            'name': 'TestA',
             'publicId': 'test',
-            'svm_password': 'diffpassword',
-            'gcp_labels': [{'labelKey': 'abc', 'labelValue': 'a124'}, {'labelKey': 'def', 'labelValue': 'b3424'}],
-            'tier_level': 'standard'
+            'cloudProviderName': 'GCP',
+            'isHA': False,
+            'svmName': 'svm_TestA',
+            'svm_password': 'password',
+            'tenantId': 'Tenant-test',
         }
         get_cvo.return_value = my_cvo, None
         cvo_property = {'name': 'Dummyname',
                         'publicId': 'test',
-                        'ontapClusterProperties': {'capacityTierInfo': {'tierLevel': 'standard'},
-                                                   'writingSpeedState': 'NORMAL'},
+                        'ontapClusterProperties': {
+                            'capacityTierInfo': {'tierLevel': 'standard'},
+                            'licenseType': {'capacityLimit': {'size': 10.0, 'unit': 'TB'},
+                                            'name': 'Cloud Volumes ONTAP Standard'},
+                            'ontapVersion': '9.10.0.T1',
+                            'writingSpeedState': 'NORMAL'},
                         'providerProperties': {
-                            'regionName': 'us-west4',
-                            'zoneName': ['us-west-1b'],
+                            'regionName': 'us-west1',
+                            'zoneName': ['us-west1-b'],
                             'instanceType': 'n1-standard-8',
+                            'labels': {'cloud-ontap-dm': 'anscvogcp-deployment',
+                                       'cloud-ontap-version': '9_10_0_t1',
+                                       'key1': 'value1',
+                                       'platform-serial-number': '90920130000000001020',
+                                       'working-environment-id': 'vsaworkingenvironment-cxxt6zwj'},
                             'subnetCidr': '10.150.0.0/20',
-                            'projectName': 'project-test'}
+                            'projectName': 'default-project'},
+                        'svmName': 'svm_Dummyname',
+                        'tenantId': 'Tenant-test',
+                        'workingEnvironmentTyp': 'VSA'
                         }
         get_property.return_value = cvo_property, None
+        cvo_details = {'cloudProviderName': 'GCP',
+                       'isHA': False,
+                       'name': 'Dummyname',
+                       'ontapClusterProperties': None,
+                       'publicId': 'test',
+                       'status': None,
+                       'userTags': {'key1': 'value1'},
+                       'workingEnvironmentType': 'VSA'}
+        get_details.return_value = cvo_details, None
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+
+        for item in modify:
+            if item == 'svm_password':
+                update_svm_password.return_value = True, None
+            elif item == 'gcp_labels':
+                update_cvo_tags.return_value = True, None
+            elif item == 'tier_level':
+                update_tier_level.return_value = True, None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_change_cloudmanager_cvo_gcp: %s' % repr(exc.value))
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    def test_change_cloudmanager_cvo_gcp_ha(self, get_cvo, get_property, get_details, update_svm_password,
+                                            update_cvo_tags, update_tier_level, get_token):
+        data = self.set_args_create_cloudmanager_cvo_gcp()
+        data['is_ha'] = True
+        data['subnet0_node_and_data_connectivity'] = 'default'
+        data['subnet1_cluster_connectivity'] = 'subnet2'
+        data['subnet2_ha_connectivity'] = 'subnet3'
+        data['subnet3_data_replication'] = 'subnet1'
+        data['vpc0_node_and_data_connectivity'] = 'default'
+        data['vpc1_cluster_connectivity'] = 'vpc2'
+        data['vpc2_ha_connectivity'] = 'vpc3'
+        data['vpc3_data_replication'] = 'vpc1'
+        data['platform_serial_number_node1'] = '12345678'
+        data['platform_serial_number_node2'] = '23456789'
+        data['license_type'] = 'gcp-ha-cot-premium-byol'
+        set_module_args(data)
+
+        modify = ['svm_password', 'gcp_labels', 'tier_level']
+
+        my_cvo = {
+            'name': 'TestA',
+            'publicId': 'test',
+            'cloudProviderName': 'GCP',
+            'isHA': True,
+            'svmName': 'svm_TestA',
+            'svm_password': 'password',
+            'tenantId': 'Tenant-test',
+        }
+        get_cvo.return_value = my_cvo, None
+        cvo_property = {'name': 'Dummyname',
+                        'publicId': 'test',
+                        'ontapClusterProperties': {
+                            'capacityTierInfo': {'tierLevel': 'standard'},
+                            'licenseType': {'capacityLimit': {'size': 10.0, 'unit': 'TB'},
+                                            'name': 'Cloud Volumes ONTAP Standard'},
+                            'ontapVersion': '9.10.0.T1',
+                            'writingSpeedState': 'NORMAL'},
+                        'providerProperties': {
+                            'regionName': 'us-west1',
+                            'zoneName': ['us-west1-b'],
+                            'instanceType': 'n1-standard-8',
+                            'labels': {'cloud-ontap-dm': 'anscvogcp-deployment',
+                                       'cloud-ontap-version': '9_10_0_t1',
+                                       'key1': 'value1',
+                                       'platform-serial-number': '90920130000000001020',
+                                       'working-environment-id': 'vsaworkingenvironment-cxxt6zwj'},
+                            'subnetCidr': '10.150.0.0/20',
+                            'projectName': 'default-project'},
+                        'svmName': 'svm_Dummyname',
+                        'tenantId': 'Tenant-test',
+                        'workingEnvironmentTyp': 'VSA'
+                        }
+        get_property.return_value = cvo_property, None
+        cvo_details = {'cloudProviderName': 'GCP',
+                       'isHA': True,
+                       'name': 'Dummyname',
+                       'ontapClusterProperties': None,
+                       'publicId': 'test',
+                       'status': None,
+                       'userTags': {'key1': 'value1', 'partner-platform-serial-number': '90920140000000001019'},
+                       'workingEnvironmentType': 'VSA'}
+        get_details.return_value = cvo_details, None
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
 

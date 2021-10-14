@@ -334,9 +334,9 @@ options:
   writing_speed_state:
     description:
     - The write speed setting for Cloud Volumes ONTAP ['NORMAL','HIGH'].
+    - Default value is 'NORMAL' for non-HA GCP CVO
     - This argument is not relevant for HA pairs.
     type: str
-    default: 'NORMAL'
 
   zone:
     description:
@@ -493,7 +493,7 @@ class NetAppCloudManagerCVOGCP:
             vpc3_data_replication=dict(required=False, type='str'),
             vpc3_firewall_rule_name=dict(required=False, type='str'),
             workspace_id=dict(required=False, type='str'),
-            writing_speed_state=dict(required=False, type='str', default='NORMAL'),
+            writing_speed_state=dict(required=False, type='str'),
             zone=dict(required=True, type='str'),
         ))
 
@@ -556,13 +556,17 @@ class NetAppCloudManagerCVOGCP:
                 "svmPassword": self.parameters['svm_password'],
                 "backupVolumesToCbs": self.parameters['backup_volumes_to_cbs'],
                 "enableCompliance": self.parameters['enable_compliance'],
-                "writingSpeedState": self.parameters['writing_speed_state'],
                 "vsaMetadata": {
                     "ontapVersion": self.parameters['ontap_version'],
                     "licenseType": self.parameters['license_type'],
                     "useLatestVersion": self.parameters['use_latest_version'],
                     "instanceType": self.parameters['instance_type']}
                 }
+
+        if self.parameters['is_ha'] is False:
+            if self.parameters.get('writing_speed_state') is None:
+                self.parameters['writing_speed_state'] = 'NORMAL'
+            json.update({'writingSpeedState': self.parameters['writing_speed_state']})
 
         if self.parameters.get('data_encryption_type') is not None and self.parameters['data_encryption_type'] == "GCP":
             json.update({'dataEncryptionType': self.parameters['data_encryption_type']})

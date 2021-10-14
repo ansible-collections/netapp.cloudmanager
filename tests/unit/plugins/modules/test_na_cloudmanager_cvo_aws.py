@@ -320,27 +320,45 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
-    def test_change_cloudmanager_cvo_aws(self, get_cvo, get_property, update_svm_password, update_cvo_tags,
+    def test_change_cloudmanager_cvo_aws(self, get_cvo, get_property, get_details, update_svm_password, update_cvo_tags,
                                          update_tier_level, get_token):
         set_module_args(self.set_default_args_pass_check())
 
         modify = ['svm_password', 'aws_tag', 'tier_level']
 
         my_cvo = {
-            'name': 'Dummyname',
+            'name': 'TestA',
             'publicId': 'test',
-            'svm_password': 'diffpassword',
-            'aws_tag': [{'tagKey': 'abc', 'tagValue': 'a124'}, {'tagKey': 'def', 'tagValue': 'b3424'}],
-            'tier_level': 'Blob'
+            'cloudProviderName': 'Amazon',
+            'svm_password': 'password',
+            'isHa': False,
+            'svmName': 'svm_TestA',
+            'tenantId': 'Tenant-test',
+            'workingEnvironmentType': 'VSA',
         }
         get_cvo.return_value = my_cvo, None
-        cvo_property = {'name': 'Dummyname',
+        cvo_property = {'name': 'TestA',
                         'publicId': 'test',
-                        'ontapClusterProperties': {'capacityTierInfo': {'tierLevel': 'normal'}},
+                        'ontapClusterProperties': {
+                            'capacityTierInfo': {'tierLevel': 'normal'},
+                            'licenseType': {'capacityLimit': {'size': 2.0, 'unit': 'TB'},
+                                            'name': 'Cloud Volumes ONTAP Explore'},
+                            'ontapVersion': '9.10.0',
+                            'writingSpeedState': 'NORMAL'},
                         }
         get_property.return_value = cvo_property, None
+        cvo_details = {'cloudProviderName': 'Amazon',
+                       'isHA': False,
+                       'name': 'TestA',
+                       'ontapClusterProperties': None,
+                       'publicId': 'test',
+                       'status': None,
+                       'userTags': {'key1': 'value1'},
+                       'workingEnvironmentType': 'VSA'}
+        get_details.return_value = cvo_details, None
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
 

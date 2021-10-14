@@ -562,6 +562,15 @@ class NetAppCloudManagerCVOAZURE:
 
         return working_environment_id
 
+    def get_extra_azure_tags(self, rest_api, headers):
+        # Get extra azure tag from current working environment
+        # It is created automatically not from the user input
+        we, err = self.na_helper.get_working_environment_details(rest_api, headers)
+        if err is not None:
+            self.module.fail_json(msg="Error: unexpected response to get CVO AZURE details: %s" % str(err))
+        return [{'tag_key': 'DeployedByOccm', 'tag_value': we['userTags']['DeployedByOccm']}] if 'DeployedByOccm' in \
+                                                                                                 we['userTags'] else []
+
     def update_cvo_azure(self, working_environment_id, modify):
         base_url = '%s/working-environments/%s/' % (self.rest_api.api_root_path, working_environment_id)
         for item in modify:
@@ -570,9 +579,10 @@ class NetAppCloudManagerCVOAZURE:
                 if error is not None:
                     self.module.fail_json(changed=False, msg=error)
             if item == 'azure_tag':
-                tag_list = None
+                # default azure tag
+                tag_list = self.get_extra_azure_tags(self.rest_api, self.headers)
                 if 'azure_tag' in self.parameters:
-                    tag_list = self.parameters['azure_tag']
+                    tag_list.extend(self.parameters['azure_tag'])
                 response, error = self.na_helper.update_cvo_tags(base_url, self.rest_api, self.headers, 'azure_tag', tag_list)
                 if error is not None:
                     self.module.fail_json(changed=False, msg=error)

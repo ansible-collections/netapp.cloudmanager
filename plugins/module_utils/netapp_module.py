@@ -180,8 +180,11 @@ class NetAppModule(object):
         name: working environment name,
         publicID: working environment ID
         cloudProviderName,
+        ontapClusterProperties,
         isHA,
-        svmName
+        status,
+        userTags,
+        workingEnvironmentType,
         '''
         api = "/occm/api/working-environments/"
         api += self.parameters['working_environment_id']
@@ -800,24 +803,63 @@ class NetAppModule(object):
             return None, error
         return response, None
 
+    def user_tag_key_unique(self, tag_list, key_name):
+        checked_keys = []
+        for t in tag_list:
+            if t[key_name] in checked_keys:
+                return False, 'Error: %s %s must be unique' % (key_name, t[key_name])
+            else:
+                checked_keys.append(t[key_name])
+        return True, None
+
+    def current_label_exist(self, current, desire, is_ha=False):
+        current_key_set = set(current.keys())
+        # Ignore auto generated gcp label in CVO GCP HA
+        if is_ha:
+            current_key_set.discard('partner-platform-serial-number')
+        desire_keys = set([a_dict['label_key'] for a_dict in desire])
+        if current_key_set.issubset(desire_keys):
+            return True, None
+        else:
+            return False, 'Error: label_key %s in gcp_label cannot be removed' % str(current_key_set)
+
+    def compare_gcp_labels(self, current_tags, user_tags, is_ha):
+        '''
+        Update user-tag API behaves differntly in GCP CVO.
+        It only supports adding gcp_labels and modifying the values of gcp_labels. Removing gcp_label is not allowed.
+        '''
+        # check if any current gcp_labels are going to be removed or not
+        # gcp HA has one extra gcp_label created automatically
+        resp, error = self.user_tag_key_unique(user_tags, 'label_key')
+        if error is not None:
+            return None, error
+        # check if any current key labels are in the desired key labels
+        resp, error = self.current_label_exist(current_tags, user_tags, is_ha)
+        if error is not None:
+            return None, error
+        else:
+            return True, None
+
     def compare_cvo_tags_labels(self, current_tags, user_tags, tag_name):
         '''
         Compare exiting tags/labels and user input tags/labels to see if there is a change
         gcp_labels: label_key, label_value
         aws_tag/azure_tag: tag_key, tag_label
         '''
-        if len(user_tags) != len(current_tags):
-            return True
-        tag_label_prefix = 'tag' if tag_name != 'gcp_labels' else 'label'
-        tkey = tag_label_prefix + '_key'
-        tvalue = tag_label_prefix + '_value'
+        # azure has one extra azure_tag DeployedByOccm created automatically and it cannot be modified.
+        current_len = len(current_tags) - 1 if tag_name == 'azure_tag' else len(current_tags)
+        resp, error = self.user_tag_key_unique(user_tags, 'tag_key')
+        if error is not None:
+            return None, error
+        if len(user_tags) != current_len:
+            return True, None
         # Check if tags/labels of desired configuration in current working environment
         for item in user_tags:
-            if item[tkey] in current_tags and item[tvalue] != current_tags[item[tkey]]:
-                return True
-            elif item[tkey] not in current_tags:
-                return True
-        return False
+            if item['tag_key'] in current_tags and item['tag_value'] != current_tags[item['tag_key']]:
+                return True, None
+            elif item['tag_key'] not in current_tags:
+                return True, None
+        return False, None
 
     def is_cvo_tags_changed(self, rest_api, headers, parameters, tag_name):
         '''
@@ -826,16 +868,25 @@ class NetAppModule(object):
         # get working environment details by working environment ID
         current, error = self.get_working_environment_details(rest_api, headers)
         if error is not None:
-            return 'Error:  Cannot find working environment %s error: %s' % (self.parameters['working_environment_id'], str(error))
+            return None, 'Error:  Cannot find working environment %s error: %s' % (self.parameters['working_environment_id'], str(error))
         self.set_api_root_path(current, rest_api)
         # compare tags
         # no tags in current cvo
-        if 'userTags' not in current:
-            return tag_name in parameters
+        if 'userTags' not in current or len(current['userTags']) == 0:
+            return tag_name in parameters, None
 
+        if tag_name == 'gcp_labels':
+            if tag_name not in parameters:
+                # if both are empty, no need to update
+                if current['isHA'] and len(current['userTags']) == 1 and 'partner-platform-serial-number' in current['userTags']:
+                    return False, None
+                else:
+                    return None, 'Error:  Cannot remove current gcp_labels'
+            else:
+                return self.compare_gcp_labels(current['userTags'], parameters[tag_name], current['isHA'])
         # no tags in input parameters
         if tag_name not in parameters:
-            return True
+            return True, None
         else:
             # has tags in input parameters and existing CVO
             return self.compare_cvo_tags_labels(current['userTags'], parameters[tag_name], tag_name)
@@ -853,12 +904,17 @@ class NetAppModule(object):
         elif tier_level != desired['tier_level']:
             modified.append('tier_level')
 
-        if provider == 'aws' and self.is_cvo_tags_changed(rest_api, headers, desired, 'aws_tag'):
-            modified.append('aws_tag')
-        if provider == 'azure' and self.is_cvo_tags_changed(rest_api, headers, desired, 'azure_tag'):
-            modified.append('azure_tag')
-        if provider == 'gcp' and self.is_cvo_tags_changed(rest_api, headers, desired, 'gcp_labels'):
-            modified.append('gcp_labels')
+        tag_name = {
+            'aws': 'aws_tag',
+            'azure': 'azure_tag',
+            'gcp': 'gcp_labels'
+        }
+
+        need_change, error = self.is_cvo_tags_changed(rest_api, headers, desired, tag_name[provider])
+        if error is not None:
+            return None, error
+        if need_change:
+            modified.append(tag_name[provider])
 
         # The updates of followings are not supported. Will response failure.
         for key, value in desired.items():
@@ -876,10 +932,12 @@ class NetAppModule(object):
 
         if modified:
             self.changed = True
-        return modified
+        return modified, None
 
     def is_cvo_update_needed(self, rest_api, headers, parameters, changeable_params, provider):
-        modify = self.get_modify_cvo_params(rest_api, headers, parameters, provider)
+        modify, error = self.get_modify_cvo_params(rest_api, headers, parameters, provider)
+        if error is not None:
+            return None, error
         unmodifiable = [attr for attr in modify if attr not in changeable_params]
         if unmodifiable:
             return None, "%s cannot be modified." % str(unmodifiable)
