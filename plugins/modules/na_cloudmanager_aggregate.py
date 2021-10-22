@@ -200,7 +200,9 @@ class NetAppCloudmanagerAggregate(object):
             if error is not None:
                 self.module.fail_json(msg="Error: Cannot find working environment: %s" % str(error))
         elif 'working_environment_name' in self.parameters:
-            working_environment_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api, self.headers)
+            working_environment_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api,
+                                                                                                       self.headers,
+                                                                                                       self.parameters['working_environment_name'])
             if error is not None:
                 self.module.fail_json(msg="Error: Cannot find working environment: %s" % str(error))
         else:

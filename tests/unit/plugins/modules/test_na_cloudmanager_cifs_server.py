@@ -78,6 +78,21 @@ class TestMyModule(unittest.TestCase):
             'organizational_unit': 'CN=Computers',
         })
 
+    def set_default_args_with_workingenv_name_pass_check(self):
+        return dict({
+            'state': 'present',
+            'working_environment_name': 'weone',
+            'client_id': 'Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh',
+            'refresh_token': 'refreshToken',
+            'domain': 'test.com',
+            'username': 'admin',
+            'password': 'abcde',
+            'dns_domain': 'test.com',
+            'ip_addresses': '["1.0.0.1"]',
+            'netbios': 'cvoname',
+            'organizational_unit': 'CN=Computers',
+        })
+
     def set_using_workgroup_args_pass_check(self):
         return dict({
             'state': 'present',
@@ -158,6 +173,62 @@ class TestMyModule(unittest.TestCase):
     def test_delete_cifs_server_successfully(self, send_request, delete, get, get_token):
         args = self.set_default_args_pass_check()
         args['state'] = 'absent'
+        set_module_args(args)
+        get.return_value = {
+            'domain': 'test.com',
+            'dns_domain': 'test.com',
+            'ip_addresses': ['1.0.0.1'],
+            'netbios': 'cvoname',
+            'organizational_unit': 'CN=Computers',
+        }
+        delete.return_value = None
+        send_request.side_effect = [({'publicId': 'id', 'svmName': 'svm_name', 'cloudProviderName': "aws", 'isHA': False}, None, 'dummy')]
+        get_token.return_value = ("type", "token")
+        obj = my_module()
+        obj.rest_api.api_root_path = "test_root_path"
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            obj.apply()
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cifs_server.NetAppCloudmanagerCifsServer.get_cifs_server')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cifs_server.NetAppCloudmanagerCifsServer.create_cifs_server')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.send_request')
+    def test_create_cifs_server_successfully(self, send_request, create, get, get_we, get_token):
+        args = self.set_default_args_with_workingenv_name_pass_check()
+        my_we = {
+            'name': 'test',
+            'publicId': 'test',
+            'cloudProviderName': 'Amazon'}
+        get_we.return_value = my_we, None
+        args['working_environment_id'] = my_we['publicId']
+        set_module_args(args)
+        get.return_value = None
+        create.return_value = None
+        send_request.side_effect = [({'publicId': 'id', 'svmName': 'svm_name', 'cloudProviderName': "aws", 'isHA': False}, None, 'dummy')]
+        get_token.return_value = ("type", "token")
+        obj = my_module()
+        obj.rest_api.api_root_path = "test_root_path"
+        with pytest.raises(AnsibleExitJson) as exc:
+            obj.apply()
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cifs_server.NetAppCloudmanagerCifsServer.get_cifs_server')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cifs_server.NetAppCloudmanagerCifsServer.delete_cifs_server')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.send_request')
+    def test_delete_cifs_server_with_workingenv_name_successfully(self, send_request, delete, get, get_we, get_token):
+        args = self.set_default_args_with_workingenv_name_pass_check()
+        args['state'] = 'absent'
+        my_we = {
+            'name': 'test',
+            'publicId': 'test',
+            'cloudProviderName': 'Amazon'}
+        get_we.return_value = my_we, None
+        args['working_environment_id'] = my_we['publicId']
         set_module_args(args)
         get.return_value = {
             'domain': 'test.com',

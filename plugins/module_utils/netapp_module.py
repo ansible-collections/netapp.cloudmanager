@@ -126,16 +126,16 @@ class NetAppModule(object):
         else:
             return response, None
 
-    def look_up_working_environment_by_name_in_list(self, we_list, name='working_environment_name'):
+    def look_up_working_environment_by_name_in_list(self, we_list, name):
         '''
         Look up working environment by the name in working environment list
         '''
         for we in we_list:
             if we['name'] == name:
                 return we, None
-        return None, "Working environment not found"
+        return None, "look_up_working_environment_by_name_in_list: Working environment not found"
 
-    def get_working_environment_details_by_name(self, rest_api, headers, name='working_environment_name', provider=None):
+    def get_working_environment_details_by_name(self, rest_api, headers, name, provider=None):
         '''
         Use working environment name to get working environment details including:
         name: working environment name,
@@ -172,7 +172,7 @@ class NetAppModule(object):
             working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['vsaWorkingEnvironments'], name)
             if error is None:
                 return working_environment_details, None
-        return None, "Working environment not found"
+        return None, "get_working_environment_details_by_name: Working environment not found"
 
     def get_working_environment_details(self, rest_api, headers):
         '''
@@ -190,7 +190,7 @@ class NetAppModule(object):
         api += self.parameters['working_environment_id']
         response, error, dummy = rest_api.get(api, None, header=headers)
         if error:
-            return None, error
+            return None, "Error: get_working_environment_details %s" % error
         return response, None
 
     def get_working_environment_detail_for_snapmirror(self, rest_api, headers):
@@ -202,7 +202,8 @@ class NetAppModule(object):
             if error:
                 return None, None, "Error getting WE info: %s: %s" % (error, source_working_env_detail)
         elif self.parameters.get('source_working_environment_name'):
-            source_working_env_detail, error = self.get_working_environment_details_by_name(rest_api, headers, 'source_working_environment_name')
+            source_working_env_detail, error = self.get_working_environment_details_by_name(rest_api, headers,
+                                                                                            self.parameters['source_working_environment_name'])
             if error:
                 return None, None, error
         else:
@@ -215,7 +216,8 @@ class NetAppModule(object):
             if error:
                 return None, None, "Error getting WE info: %s: %s" % (error, dest_working_env_detail)
         elif self.parameters.get('destination_working_environment_name'):
-            dest_working_env_detail, error = self.get_working_environment_details_by_name(rest_api, headers, 'destination_working_environment_name')
+            dest_working_env_detail, error = self.get_working_environment_details_by_name(rest_api, headers,
+                                                                                          self.parameters['destination_working_environment_name'])
             if error:
                 return None, None, error
         else:
@@ -800,7 +802,7 @@ class NetAppModule(object):
         api += '?fields=status,providerProperties,ontapClusterProperties'
         response, error, dummy = rest_api.get(api, None, header=headers)
         if error:
-            return None, error
+            return None, "Error: get_working_environment_property %s" % error
         return response, None
 
     def user_tag_key_unique(self, tag_list, key_name):

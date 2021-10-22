@@ -40,6 +40,9 @@ https://github.com/ansible-collections/netapp/wiki
 ### Minor Changes
   - Handle extra azure_tag on AZURE CVO and extra gcp_labels on GCP CVO HA on modification. gcp_labels modification on GCP CVO does not support remove labels.
 
+### Bug Fixes
+  - Fix cannot find working environment if `working_environment_name` is provided.
+
 ## 21.11.0
 
 ## New Options

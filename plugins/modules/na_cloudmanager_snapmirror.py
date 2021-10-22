@@ -288,8 +288,9 @@ class NetAppCloudmanagerSnapmirror:
                 self.parameters['destination_svm_name'] = dest_we_info['svmName']
             else:
                 self.parameters['destination_working_environment_name'] = dest_we_info['name']
-                dest_working_env_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api, self.headers,
-                                                                                                        'destination_working_environment_name')
+                dest_working_env_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api,
+                                                                                                        self.headers,
+                                                                                                        self.parameters['destination_working_environment_name'])
                 if error:
                     self.module.fail_json(changed=False, msg='Error getting destination info %s: %s.' % (err, dest_working_env_detail))
                 self.parameters['destination_svm_name'] = dest_working_env_detail['svmName']

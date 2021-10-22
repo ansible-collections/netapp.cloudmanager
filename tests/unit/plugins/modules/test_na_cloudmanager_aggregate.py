@@ -90,11 +90,34 @@ class TestMyModule(unittest.TestCase):
             'refresh_token': 'myrefresh_token',
         })
 
+    def set_args_create_cloudmanager_aggregate_by_workingenv_name(self):
+        return dict({
+            'state': 'present',
+            'name': 'Dummyname',
+            'working_environment_name': 'wkone',
+            'client_id': 'Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh',
+            'number_of_disks': 2,
+            'disk_size_size': 100,
+            'disk_size_unit': 'GB',
+            'refresh_token': 'myrefresh_token',
+        })
+
     def set_args_delete_cloudmanager_aggregate(self):
         return dict({
             'state': 'absent',
             'name': 'Dummyname',
             'working_environment_id': 'VsaWorkingEnvironment-abcdefg12345',
+            'client_id': 'Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh',
+            'number_of_disks': 2,
+            'disk_size_size': 100,
+            'disk_size_unit': 'GB',
+            'refresh_token': 'myrefresh_token',
+        })
+
+    def set_args_delete_cloudmanager_aggregate_by_workingenv_name(self):
+        return dict({
+            'state': 'absent',
+            'name': 'Dummyname',
             'client_id': 'Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh',
             'number_of_disks': 2,
             'disk_size_size': 100,
@@ -206,4 +229,65 @@ class TestMyModule(unittest.TestCase):
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
         print('Info: test_update_cloudmanager_aggregate: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_aggregate.NetAppCloudmanagerAggregate.get_aggregate')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
+    def test_create_cloudmanager_aggregate_by_workingenv_name_pass(self, get_post_api, get_we, get_aggregate_api, get_token):
+        data = self.set_args_create_cloudmanager_aggregate_by_workingenv_name()
+        get_token.return_value = 'test', 'test'
+        my_we = {
+            'name': 'test',
+            'publicId': 'test',
+            'cloudProviderName': 'Amazon'}
+        get_we.return_value = my_we, None
+        data['working_environment_id'] = my_we['publicId']
+        set_module_args(data)
+        my_obj = my_module()
+        my_obj.rest_api.api_root_path = "my_root_path"
+        get_aggregate_api.return_value = None
+        get_post_api.return_value = None, None, None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_create_cloudmanager_aggregate: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_aggregate.NetAppCloudmanagerAggregate.get_aggregate')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.delete')
+    def test_delete_cloudmanager_aggregate_by_workingenv_name_pass(self, get_delete_api, get_we, get_aggregate_api, get_token):
+        data = self.set_args_delete_cloudmanager_aggregate_by_workingenv_name()
+        my_we = {
+            'name': 'test',
+            'publicId': 'test',
+            'cloudProviderName': 'Amazon'}
+        get_we.return_value = my_we, None
+        data['working_environment_id'] = my_we['publicId']
+        set_module_args(data)
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+        my_obj.rest_api.api_root_path = "my_root_path"
+
+        my_aggregate = {
+            'name': 'Dummyname',
+            'state': 'online',
+            'working_environment_id': 'VsaWorkingEnvironment-abcdefg12345',
+            'client_id': 'Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh',
+            'refresh_token': 'myrefresh_token',
+            'disks': [{'device': 'xvdh vol-313', 'position': 'data', 'vmDiskProperties': None,
+                       'ownerNode': 'testAWSa-01', 'name': 'testAWSa-01-i-12h'},
+                      {'device': 'xvdi vol-314', 'position': 'data', 'vmDiskProperties': None,
+                       'ownerNode': 'testAWSa-01', 'name': 'testAWSa-01-i-12i'}],
+            'homeNode': 'testAWSa-01',
+        }
+        get_aggregate_api.return_value = my_aggregate
+        get_delete_api.return_value = 'Aggregated Deleted', None, None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_delete_cloudmanager_aggregate: %s' % repr(exc.value))
         assert exc.value.args[0]['changed']

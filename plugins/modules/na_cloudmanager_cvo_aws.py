@@ -757,8 +757,7 @@ class NetAppCloudManagerCVOAWS:
         working_environment_id = None
         modify = None
         current, dummy = self.na_helper.get_working_environment_details_by_name(self.rest_api, self.headers,
-                                                                                self.parameters['name'],
-                                                                                "aws")
+                                                                                self.parameters['name'], "aws")
         if current:
             self.parameters['working_environment_id'] = current['publicId']
         # check the action

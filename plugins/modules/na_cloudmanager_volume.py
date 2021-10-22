@@ -301,7 +301,9 @@ class NetAppCloudmanagerVolume(object):
         if self.parameters.get('working_environment_id'):
             working_environment_detail, error = self.na_helper.get_working_environment_details(self.rest_api, self.headers)
         else:
-            working_environment_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api, self.headers)
+            working_environment_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api,
+                                                                                                       self.headers,
+                                                                                                       self.parameters['working_environment_name'])
         if working_environment_detail is not None:
             self.parameters['working_environment_id'] = working_environment_detail['publicId']
         else:
