@@ -38,6 +38,7 @@ https://github.com/ansible-collections/netapp/wiki
 ## 21.12.0
 
 ### Minor Changes
+  - na_cloudmanager_snapmirror - working environment get information api not working for onprem is fixed.
   - Handle extra azure_tag on AZURE CVO and extra gcp_labels on GCP CVO HA on modification. gcp_labels modification on GCP CVO does not support remove labels.
 
 ### Bug Fixes

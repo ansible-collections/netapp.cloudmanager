@@ -195,12 +195,17 @@ class NetAppModule(object):
 
     def get_working_environment_detail_for_snapmirror(self, rest_api, headers):
 
+        source_working_env_detail, dest_working_env_detail = None, None
         if self.parameters.get('source_working_environment_id'):
-            api = '/occm/api/working-environments/'
-            api += self.parameters['source_working_environment_id']
-            source_working_env_detail, error, dummy = rest_api.get(api, None, header=headers)
+            api = '/occm/api/working-environments'
+            working_env_details, error, dummy = rest_api.get(api, None, header=headers)
             if error:
-                return None, None, "Error getting WE info: %s: %s" % (error, source_working_env_detail)
+                return None, None, "Error getting WE info: %s: %s" % (error, working_env_details)
+            for dummy, values in working_env_details.items():
+                for each in values:
+                    if each['publicId'] == self.parameters['source_working_environment_id']:
+                        source_working_env_detail = each
+                        break
         elif self.parameters.get('source_working_environment_name'):
             source_working_env_detail, error = self.get_working_environment_details_by_name(rest_api, headers,
                                                                                             self.parameters['source_working_environment_name'])
@@ -210,11 +215,15 @@ class NetAppModule(object):
             return None, None, "Cannot find working environment by source_working_environment_id or source_working_environment_name"
 
         if self.parameters.get('destination_working_environment_id'):
-            api = '/occm/api/working-environments/'
-            api += self.parameters['destination_working_environment_id']
-            dest_working_env_detail, error, dummy = rest_api.get(api, None, header=headers)
+            api = '/occm/api/working-environments'
+            working_env_details, error, dummy = rest_api.get(api, None, header=headers)
             if error:
-                return None, None, "Error getting WE info: %s: %s" % (error, dest_working_env_detail)
+                return None, None, "Error getting WE info: %s: %s" % (error, working_env_details)
+            for dummy, values in working_env_details.items():
+                for each in values:
+                    if each['publicId'] == self.parameters['destination_working_environment_id']:
+                        dest_working_env_detail = each
+                        break
         elif self.parameters.get('destination_working_environment_name'):
             dest_working_env_detail, error = self.get_working_environment_details_by_name(rest_api, headers,
                                                                                           self.parameters['destination_working_environment_name'])

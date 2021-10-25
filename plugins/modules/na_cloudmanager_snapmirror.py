@@ -221,7 +221,6 @@ class NetAppCloudmanagerSnapmirror:
         snapmirror_info, err, dummy = self.rest_api.send_request("GET", get_url, None, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg='Error getting snapmirror relationship %s: %s.' % (err, snapmirror_info))
-
         sm_found = False
         snapmirror = None
         for sm in snapmirror_info:
@@ -251,7 +250,8 @@ class NetAppCloudmanagerSnapmirror:
             if self.parameters['capacity_tier'] == 'NONE':
                 self.parameters.pop('capacity_tier')
         else:
-            self.parameters['capacity_tier'] = PROVIDER_TO_CAPACITY_TIER[dest_we_info['cloudProviderName'].lower()]
+            if dest_we_info.get('cloudProviderName'):
+                self.parameters['capacity_tier'] = PROVIDER_TO_CAPACITY_TIER[dest_we_info['cloudProviderName'].lower()]
 
         interclusterlifs_info = self.get_interclusterlifs(source_we_info['publicId'], dest_we_info['publicId'])
 
@@ -368,13 +368,16 @@ class NetAppCloudmanagerSnapmirror:
         return response
 
     def get_aggregate_detail(self, working_environment_detail, aggregate_name):
-        self.na_helper.set_api_root_path(working_environment_detail, self.rest_api)
-        api_root_path = self.rest_api.api_root_path
-        if working_environment_detail['cloudProviderName'] != "Amazon":
-            api = '%s/aggregates/%s'
+        if working_environment_detail['workingEnvironmentType'] == 'ON_PREM':
+            api = "/occm/api/onprem/aggregates?workingEnvironmentId=%s" % working_environment_detail['publicId']
         else:
-            api = '%s/aggregates?workingEnvironmentId=%s'
-        api = api % (api_root_path, working_environment_detail['publicId'])
+            self.na_helper.set_api_root_path(working_environment_detail, self.rest_api)
+            api_root_path = self.rest_api.api_root_path
+            if working_environment_detail['cloudProviderName'] != "Amazon":
+                api = '%s/aggregates/%s'
+            else:
+                api = '%s/aggregates?workingEnvironmentId=%s'
+            api = api % (api_root_path, working_environment_detail['publicId'])
         response, error, dummy = self.rest_api.get(api, header=self.headers)
         if error:
             self.module.fail_json(msg="Error: Failed to get aggregate list: %s" % str(error))
@@ -399,13 +402,14 @@ class NetAppCloudmanagerSnapmirror:
         if aggregate is None:
             self.module.fail_json(changed=False, msg='Error getting aggregate on source volume')
         # All the volumes in one aggregate have the same physical properties
-        if aggregate['providerVolumes'][0]['diskType'] == 'gp3' or aggregate['providerVolumes'][0]['diskType'] == 'io1'\
-                or aggregate['providerVolumes'][0]['diskType'] == 'io2':
-            quote['iops'] = aggregate['providerVolumes'][0]['iops']
-        if aggregate['providerVolumes'][0]['diskType'] == 'gp3':
-            quote['throughput'] = aggregate['providerVolumes'][0]['throughput']
-        quote['workingEnvironmentId'] = dest_we_info['publicId']
-        quote['svmName'] = self.parameters['destination_svm_name']
+        if source_we_info['workingEnvironmentType'] != 'ON_PREM':
+            if aggregate['providerVolumes'][0]['diskType'] == 'gp3' or aggregate['providerVolumes'][0]['diskType'] == 'io1'\
+                    or aggregate['providerVolumes'][0]['diskType'] == 'io2':
+                quote['iops'] = aggregate['providerVolumes'][0]['iops']
+            if aggregate['providerVolumes'][0]['diskType'] == 'gp3':
+                quote['throughput'] = aggregate['providerVolumes'][0]['throughput']
+            quote['workingEnvironmentId'] = dest_we_info['publicId']
+            quote['svmName'] = self.parameters['destination_svm_name']
         if self.parameters.get('capacity_tier') is not None:
             quote['capacityTier'] = self.parameters['capacity_tier']
 
