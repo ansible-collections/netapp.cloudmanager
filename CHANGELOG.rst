@@ -5,6 +5,22 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.12.0
+========
+
+Minor Changes
+-------------
+
+- PR1 - allow usage of Ansible module group defaults - for Ansible 2.12+.
+- na_cloudmanager_cvo_azure - Add extra tag handling on azure_tag maintenance
+- na_cloudmanager_cvo_gcp - Add extra label hendling for HA and only allow add new labels on gcp_labels
+- na_cloudmanager_snapmirror - working environment get information api not working for onprem is fixed
+
+Bugfixes
+--------
+
+- Fix cannot find working environment if ``working_environment_name`` is provided
+
 v21.11.0
 ========
 

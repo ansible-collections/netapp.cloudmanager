@@ -53,6 +53,23 @@ releases:
     - DEVOPS-4321.yaml
     - DEVOPS-4327.yaml
     release_date: '2021-10-06'
+  21.12.0:
+    changes:
+      bugfixes:
+      - Fix cannot find working environment if ``working_environment_name`` is provided
+      minor_changes:
+      - PR1 - allow usage of Ansible module group defaults - for Ansible 2.12+.
+      - na_cloudmanager_cvo_azure - Add extra tag handling on azure_tag maintenance
+      - na_cloudmanager_cvo_gcp - Add extra label hendling for HA and only allow add
+        new labels on gcp_labels
+      - na_cloudmanager_snapmirror - working environment get information api not working
+        for onprem is fixed
+    fragments:
+    - DEVOPS-4328.yaml
+    - DEVOPS-4358.yaml
+    - DEVOPS-4386.yaml
+    - DEVOPS-4416.yaml
+    release_date: '2021-11-03'
   21.3.0:
     modules:
     - description: NetApp Cloud Manager Aggregate
