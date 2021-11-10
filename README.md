@@ -44,6 +44,7 @@ https://github.com/ansible-collections/netapp/wiki
 ### Bug Fixes
   - na_cloudmanager_snapmirror - working environment get information api not working for onprem is fixed.
   - Fix cannot find working environment if `working_environment_name` is provided.
+  - na_cloudmanager_connector_aws - fix default ami not found in the region on resource file
 
 ## 21.11.0
 

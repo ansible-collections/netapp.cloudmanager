@@ -268,7 +268,7 @@ class NetAppCloudManagerConnectorAWS(object):
         """
 
         response = None
-        client = boto3.client('ec2')
+        client = boto3.client('ec2', region_name=self.parameters['region'])
 
         if self.parameters.get('ami') is None:
             self.parameters['ami'] = self.get_ami()
@@ -299,7 +299,7 @@ class NetAppCloudManagerConnectorAWS(object):
         """
 
         instance_ami = None
-        client = boto3.client('ec2')
+        client = boto3.client('ec2', region_name=self.parameters['region'])
 
         try:
             instance_ami = client.describe_images(
