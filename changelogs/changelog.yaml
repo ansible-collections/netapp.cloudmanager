@@ -70,6 +70,17 @@ releases:
     - DEVOPS-4386.yaml
     - DEVOPS-4416.yaml
     release_date: '2021-11-03'
+  21.12.1:
+    changes:
+      bugfixes:
+      - na_cloudmanager_connector_aws - Fix default ami not based on the region in
+        resource file
+      - na_cloudmanager_snapmirror - report actual error rather than None with "Error
+        getting destination info".
+    fragments:
+    - DEVOPS-4298.yaml
+    - DEVOPS-4458.yaml
+    release_date: '2021-11-23'
   21.3.0:
     modules:
     - description: NetApp Cloud Manager Aggregate

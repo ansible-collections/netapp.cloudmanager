@@ -5,6 +5,15 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.12.1
+========
+
+Bugfixes
+--------
+
+- na_cloudmanager_connector_aws - Fix default ami not based on the region in resource file
+- na_cloudmanager_snapmirror - report actual error rather than None with "Error getting destination info".
+
 v21.12.0
 ========
 

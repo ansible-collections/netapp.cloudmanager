@@ -229,20 +229,19 @@ class NetAppCloudmanagerSnapmirror:
                 snapmirror = sm
                 break
 
-        if sm_found is False:
+        if not sm_found:
             return None
-        sm_detail = dict()
-        sm_detail['source_working_environment_id'] = source_we_info['publicId']
-        sm_detail['destination_working_environment_id'] = dest_we_info['publicId']
-        sm_detail['destination_svm_name'] = snapmirror['destination']['svmName']
-        sm_detail['cloud_provider_name'] = dest_we_info['cloudProviderName']
-
-        return sm_detail
+        return {
+            'source_working_environment_id': source_we_info['publicId'],
+            'destination_working_environment_id': dest_we_info['publicId'],
+            'destination_svm_name': snapmirror['destination']['svmName'],
+            'cloud_provider_name': dest_we_info['cloudProviderName'],
+        }
 
     def create_snapmirror(self):
-        snapmirror_build_data = dict()
-        replication_request = dict()
-        replication_volume = dict()
+        snapmirror_build_data = {}
+        replication_request = {}
+        replication_volume = {}
         source_we_info, dest_we_info, err = self.na_helper.get_working_environment_detail_for_snapmirror(self.rest_api, self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
@@ -264,8 +263,8 @@ class NetAppCloudmanagerSnapmirror:
             self.module.fail_json(changed=False, msg='source volume not found')
 
         vol_found = False
-        vol_dest_quote = dict()
-        source_volume_resp = dict()
+        vol_dest_quote = {}
+        source_volume_resp = {}
         for vol in source_volumes:
             # self.module.fail_json(changed=False, msg=source_we_info)
             if vol['name'] == self.parameters['source_volume_name']:
@@ -288,10 +287,10 @@ class NetAppCloudmanagerSnapmirror:
                 self.parameters['destination_svm_name'] = dest_we_info['svmName']
             else:
                 self.parameters['destination_working_environment_name'] = dest_we_info['name']
-                dest_working_env_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api,
-                                                                                                        self.headers,
-                                                                                                        self.parameters['destination_working_environment_name'])
-                if error:
+                dest_working_env_detail, err = self.na_helper.get_working_environment_details_by_name(self.rest_api,
+                                                                                                      self.headers,
+                                                                                                      self.parameters['destination_working_environment_name'])
+                if err:
                     self.module.fail_json(changed=False, msg='Error getting destination info %s: %s.' % (err, dest_working_env_detail))
                 self.parameters['destination_svm_name'] = dest_working_env_detail['svmName']
 

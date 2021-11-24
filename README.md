@@ -20,6 +20,7 @@ collections:
 # Requirements
 - ansible version >= 2.9
 - requests >= 2.20
+- python version >= '3.5'
 
 # Module documentation
 https://docs.ansible.com/ansible/devel/collections/netapp/cloudmanager/
@@ -35,6 +36,12 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.12.1
+
+### Bug Fixes
+  - na_cloudmanager_connector_aws - fix default ami not found in the region on resource file
+  - na_cloudmanager_snapmirror - report actual error rather than None with "Error getting destination info".
+
 ## 21.12.0
 
 ### Minor Changes
@@ -44,7 +51,6 @@ https://github.com/ansible-collections/netapp/wiki
 ### Bug Fixes
   - na_cloudmanager_snapmirror - working environment get information api not working for onprem is fixed.
   - Fix cannot find working environment if `working_environment_name` is provided.
-  - na_cloudmanager_connector_aws - fix default ami not found in the region on resource file
 
 ## 21.11.0
 
