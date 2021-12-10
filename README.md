@@ -36,6 +36,12 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.13.0
+  - na_cloudmanager_connector_aws - make the module idempotent for create and delete.
+  - na_cloudmanager_connector_aws - automatically fetch client_id and instance_id for delete.
+  - na_cloudmanager_connector_aws - report client_id if connector already exists.
+  - na_cloudmanager_info - new subsets - account_info, agents_info, active_agents_info
+
 ## 21.12.1
 
 ### Bug Fixes

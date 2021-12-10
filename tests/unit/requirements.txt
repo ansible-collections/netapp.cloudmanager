@@ -1,4 +1,5 @@
 boto3 ; python_version >= '3.5'
+botocore ; python_version >= '3.5'
 azure-mgmt-compute ; python_version >= '3.5'
 azure-mgmt-network ; python_version >= '3.5'
 azure-mgmt-storage ; python_version >= '3.5'

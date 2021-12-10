@@ -372,7 +372,7 @@ class NetAppCloudManagerConnectorAzure(object):
         time.sleep(120)
         retries = 30
         while retries > 0:
-            occm_resp, error = self.na_helper.check_occm_status(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, client_id)
+            occm_resp, error = self.na_helper.check_occm_status(self.rest_api, client_id)
             if error is not None:
                 self.module.fail_json(
                     msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
@@ -380,7 +380,7 @@ class NetAppCloudManagerConnectorAzure(object):
                 break
             else:
                 time.sleep(30)
-            retries = retries - 1
+            retries -= 1
         if retries == 0:
             # Taking too long for status to be active
             return self.module.fail_json(msg="Taking too long for OCCM agent to be active or not properly setup")
@@ -402,7 +402,7 @@ class NetAppCloudManagerConnectorAzure(object):
         subnet = '%s/subnets/%s' % (network, self.parameters['subnet_name'])
 
         if self.parameters.get('account_id') is None:
-            response, error = self.na_helper.get_account(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api)
+            response, error = self.na_helper.get_or_create_account(self.rest_api)
             if error is not None:
                 self.module.fail_json(
                     msg="Error: unexpected response on getting account: %s, %s" % (str(error), str(response)))
@@ -447,7 +447,7 @@ class NetAppCloudManagerConnectorAzure(object):
                 encoded_certificate = base64.b64encode(data)
                 proxy_certificates.append(encoded_certificate)
 
-        if len(proxy_certificates) > 0:
+        if proxy_certificates:
             response['proxySettings']['proxyCertificates'] = proxy_certificates
 
         return response, client_id
@@ -513,7 +513,7 @@ class NetAppCloudManagerConnectorAzure(object):
 
         retries = 16
         while retries > 0:
-            occm_resp, error = self.na_helper.check_occm_status(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api,
+            occm_resp, error = self.na_helper.check_occm_status(self.rest_api,
                                                                 self.parameters['client_id'])
             if error is not None:
                 self.module.fail_json(
@@ -522,13 +522,13 @@ class NetAppCloudManagerConnectorAzure(object):
                 break
             else:
                 time.sleep(10)
-            retries = retries - 1
+            retries -= 1
         if retries == 0:
             # Taking too long for terminating OCCM
             return self.module.fail_json(msg="Taking too long for instance to finish terminating")
 
         client = self.rest_api.format_cliend_id(self.parameters['client_id'])
-        delete_occum_url = "%s/agents-mgmt/agent/%s" % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], client)
+        delete_occum_url = "%s/agents-mgmt/agent/%s" % client
         headers = {
             "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
             "X-Tenancy-Account-Id": self.parameters['account_id']
@@ -544,9 +544,7 @@ class NetAppCloudManagerConnectorAzure(object):
         :return: None
         """
         client_id = None
-        if self.module.check_mode:
-            pass
-        else:
+        if not self.module.check_mode:
             if self.parameters['state'] == 'present':
                 client_id = self.deploy_azure()
                 self.na_helper.changed = True

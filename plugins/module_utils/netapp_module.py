@@ -234,21 +234,38 @@ class NetAppModule(object):
 
         return source_working_env_detail, dest_working_env_detail, None
 
-    def create_account(self, host, rest_api):
+    def create_account(self, rest_api):
         """
         Create Account
         :return: Account ID
         """
-        headers = {
-            "X-User-Token": rest_api.token_type + " " + rest_api.token,
-        }
+        # TODO? do we need to create an account?  And the code below is broken
+        return None, 'Error: creating an account is not supported.'
+        # headers = {
+        #     "X-User-Token": rest_api.token_type + " " + rest_api.token,
+        # }
 
-        url = host + '/tenancy/account/MyAccount'
-        account_res, error, dummy = rest_api.post(url, header=headers)
-        account_id = None if error is not None else account_res['accountPublicId']
-        return account_id, error
+        # api = '/tenancy/account/MyAccount'
+        # account_res, error, dummy = rest_api.post(api, header=headers)
+        # account_id = None if error is not None else account_res['accountPublicId']
+        # return account_id, error
 
-    def get_account(self, host, rest_api):
+    def get_or_create_account(self, rest_api):
+        """
+        Get Account
+        :return: Account ID
+        """
+        accounts, error = self.get_account_info(rest_api)
+        if error is not None:
+            return None, error
+        if len(accounts) == 0:
+            return None, 'Error: account cannot be located - check credentials or provide account_id.'
+            # TODO? creating an account is not supported
+            # return self.create_account(rest_api)
+
+        return accounts[0]['accountPublicId'], None
+
+    def get_account_info(self, rest_api, headers=None):
         """
         Get Account
         :return: Account ID
@@ -257,17 +274,19 @@ class NetAppModule(object):
             "X-User-Token": rest_api.token_type + " " + rest_api.token,
         }
 
-        url = host + '/tenancy/account'
-        account_res, error, dummy = rest_api.get(url, header=headers)
+        api = '/tenancy/account'
+        account_res, error, dummy = rest_api.get(api, header=headers)
         if error is not None:
             return None, error
-        if len(account_res) == 0:
-            account_id, error = self.create_account(host, rest_api)
-            if error is not None:
-                return None, error
-            return account_id, None
+        return account_res, None
 
-        return account_res[0]['accountPublicId'], None
+    def get_account_id(self, rest_api):
+        accounts, error = self.get_account_info(rest_api)
+        if error:
+            return None, error
+        if not accounts:
+            return None, 'Error: no account found - check credentials or provide account_id.'
+        return accounts[0]['accountPublicId'], None
 
     def get_accounts_info(self, rest_api, headers):
         '''
@@ -440,64 +459,101 @@ class NetAppModule(object):
         Read certificate file and encode it
         '''
         try:
-            fh = open(certificate_file, mode='rb')
-        except (OSError, IOError) as error:
-            return None, error
-        with fh:
-            cert = fh.read()
-            if cert is None:
-                return None, "Error: file is empty"
-            return base64.b64encode(cert).decode('utf-8'), None
+            with open(certificate_file, mode='rb') as fh:
+                cert = fh.read()
+        except (OSError, IOError) as exc:
+            return None, str(exc)
+        if not cert:
+            return None, "Error: file is empty"
+        return base64.b64encode(cert).decode('utf-8'), None
 
     @staticmethod
-    def get_occm_agents(host, rest_api, account_id, name, provider):
+    def get_occm_agents_by_account(rest_api, account_id):
+        """
+        Collect a list of agents matching account_id.
+        :return: list of agents, error
+        """
+        params = {'account_id': account_id}
+        api = "/agents-mgmt/agent"
+        headers = {
+            "X-User-Token": rest_api.token_type + " " + rest_api.token,
+        }
+        agents, error, dummy = rest_api.get(api, header=headers, params=params)
+        return agents, error
+
+    def get_occm_agents_by_name(self, rest_api, account_id, name, provider):
         """
         Collect a list of agents matching account_id, name, and provider.
         :return: list of agents, error
         """
-
         # I tried to query by name and provider in addition to account_id, but it returned everything
-        params = {'account_id': account_id}
-        get_occum_url = "%s/agents-mgmt/agent" % host
-        headers = {
-            "X-User-Token": rest_api.token_type + " " + rest_api.token,
-        }
-        agents, error, dummy = rest_api.get(get_occum_url, header=headers, params=params)
+        agents, error = self.get_occm_agents_by_account(rest_api, account_id)
         if isinstance(agents, dict) and 'agents' in agents:
             agents = [agent for agent in agents['agents'] if agent['name'] == name and agent['provider'] == provider]
         return agents, error
 
+    def get_agents_info(self, rest_api, headers):
+        """
+        Collect a list of agents matching account_id.
+        :return: list of agents, error
+        """
+        account_id, error = self.get_account_id(rest_api)
+        if error:
+            return None, error
+        agents, error = self.get_occm_agents_by_account(rest_api, account_id)
+        return agents, error
+
+    def get_active_agents_info(self, rest_api, headers):
+        """
+        Collect a list of agents matching account_id.
+        :return: list of agents, error
+        """
+        clients = []
+        account_id, error = self.get_account_id(rest_api)
+        if error:
+            return None, error
+        agents, error = self.get_occm_agents_by_account(rest_api, account_id)
+        if isinstance(agents, dict) and 'agents' in agents:
+            agents = [agent for agent in agents['agents'] if agent['status'] == 'active']
+            clients = [{'name': agent['name'], 'client_id': agent['agentId'], 'provider': agent['provider']} for agent in agents]
+        return clients, error
+
     @staticmethod
-    def get_occm_agent(host, rest_api, client_id):
+    def get_occm_agent_by_id(rest_api, client_id):
         """
         Fetch OCCM agent given its client id
         :return: agent details, error
         """
-        agent, error = NetAppModule.check_occm_status(host, rest_api, client_id)
-        if isinstance(agent, dict) and 'agent' in agent:
-            agent = agent['agent']
-        return agent, error
-
-    @staticmethod
-    def check_occm_status(host, rest_api, client_id):
-        """
-        Check OCCM status
-        :return: status
-        TO BE DEPRECATED - use get_occm_agent
-        """
-
-        get_occm_url = host + "/agents-mgmt/agent/" + rest_api.format_cliend_id(client_id)
+        api = "/agents-mgmt/agent/" + rest_api.format_cliend_id(client_id)
         headers = {
             "X-User-Token": rest_api.token_type + " " + rest_api.token,
         }
-        occm_status, error, dummy = rest_api.get(get_occm_url, header=headers)
+        response, error, dummy = rest_api.get(api, header=headers)
+        if isinstance(response, dict) and 'agent' in response:
+            agent = response['agent']
+            return agent, error
+        return response, error
+
+    @staticmethod
+    def check_occm_status(rest_api, client_id):
+        """
+        Check OCCM status
+        :return: status
+        DEPRECATED - use get_occm_agent_by_id but the retrun value format is different!
+        """
+
+        api = "/agents-mgmt/agent/" + rest_api.format_cliend_id(client_id)
+        headers = {
+            "X-User-Token": rest_api.token_type + " " + rest_api.token,
+        }
+        occm_status, error, dummy = rest_api.get(api, header=headers)
         return occm_status, error
 
-    def register_agent_to_service(self, host, rest_api, provider, vpc):
+    def register_agent_to_service(self, rest_api, provider, vpc):
         '''
         register agent to service
         '''
-        api_url = host + '/agents-mgmt/connector-setup'
+        api = '/agents-mgmt/connector-setup'
 
         headers = {
             "X-User-Token": rest_api.token_type + " " + rest_api.token,
@@ -524,30 +580,30 @@ class NetAppModule(object):
         if provider == "AWS":
             body['placement']['network'] = vpc
 
-        response, error, dummy = rest_api.post(api_url, body, header=headers)
+        response, error, dummy = rest_api.post(api, body, header=headers)
         return response, error
 
-    def delete_occm(self, host, rest_api, client_id):
+    def delete_occm(self, rest_api, client_id):
         '''
         delete occm
         '''
-        api_url = host + '/agents-mgmt/agent/' + rest_api.format_cliend_id(client_id)
+        api = '/agents-mgmt/agent/' + rest_api.format_cliend_id(client_id)
         headers = {
             "X-User-Token": rest_api.token_type + " " + rest_api.token,
             "X-Tenancy-Account-Id": self.parameters['account_id'],
         }
 
-        occm_status, error, dummy = rest_api.delete(api_url, None, header=headers)
+        occm_status, error, dummy = rest_api.delete(api, None, header=headers)
         return occm_status, error
 
-    def delete_occm_agents(self, host, rest_api, agents):
+    def delete_occm_agents(self, rest_api, agents):
         '''
         delete a list of occm
         '''
         results = []
         for agent in agents:
             if 'agentId' in agent:
-                occm_status, error = self.delete_occm(host, rest_api, agent['agentId'])
+                occm_status, error = self.delete_occm(rest_api, agent['agentId'])
             else:
                 occm_status, error = None, 'unexpected agent contents: %s' % repr(agent)
             if error:
@@ -784,8 +840,8 @@ class NetAppModule(object):
         """
         Get workspace ID (tenant)
         """
-        api_url = '/occm/api/tenants'
-        response, error, dummy = rest_api.get(api_url, header=headers)
+        api = '/occm/api/tenants'
+        response, error, dummy = rest_api.get(api, header=headers)
         if error is not None:
             return None, 'Error: unexpected response on getting tenant for cvo: %s, %s' % (str(error), str(response))
 
@@ -795,8 +851,8 @@ class NetAppModule(object):
         """
         Get nss account
         """
-        api_url = '/occm/api/accounts'
-        response, error, dummy = rest_api.get(api_url, header=headers)
+        api = '/occm/api/accounts'
+        response, error, dummy = rest_api.get(api, header=headers)
         if error is not None:
             return None, 'Error: unexpected response on getting nss for cvo: %s, %s' % (str(error), str(response))
 
@@ -823,13 +879,14 @@ class NetAppModule(object):
                 checked_keys.append(t[key_name])
         return True, None
 
-    def current_label_exist(self, current, desire, is_ha=False):
+    def current_label_exist(self, current, desired, is_ha=False):
         current_key_set = set(current.keys())
         # Ignore auto generated gcp label in CVO GCP HA
         if is_ha:
             current_key_set.discard('partner-platform-serial-number')
-        desire_keys = set([a_dict['label_key'] for a_dict in desire])
-        if current_key_set.issubset(desire_keys):
+        # python 2.6 doe snot support set comprehension
+        desired_keys = set([a_dict['label_key'] for a_dict in desired])
+        if current_key_set.issubset(desired_keys):
             return True, None
         else:
             return False, 'Error: label_key %s in gcp_label cannot be removed' % str(current_key_set)
@@ -887,14 +944,13 @@ class NetAppModule(object):
             return tag_name in parameters, None
 
         if tag_name == 'gcp_labels':
-            if tag_name not in parameters:
-                # if both are empty, no need to update
-                if current['isHA'] and len(current['userTags']) == 1 and 'partner-platform-serial-number' in current['userTags']:
-                    return False, None
-                else:
-                    return None, 'Error:  Cannot remove current gcp_labels'
-            else:
+            if tag_name in parameters:
                 return self.compare_gcp_labels(current['userTags'], parameters[tag_name], current['isHA'])
+            # if both are empty, no need to update
+            if current['isHA'] and len(current['userTags']) == 1 and 'partner-platform-serial-number' in current['userTags']:
+                return False, None
+            else:
+                return None, 'Error:  Cannot remove current gcp_labels'
         # no tags in input parameters
         if tag_name not in parameters:
             return True, None
@@ -955,7 +1011,7 @@ class NetAppModule(object):
         else:
             return modify, None
 
-    def update_cvo_tags(self, base_url, rest_api, headers, tag_name, tag_list):
+    def update_cvo_tags(self, api_root, rest_api, headers, tag_name, tag_list):
         body = {}
         tags = []
         if tag_list is not None:
@@ -967,23 +1023,23 @@ class NetAppModule(object):
                 tags.append(atag)
         body['tags'] = tags
 
-        response, err, dummy = rest_api.put(base_url + "user-tags", body, header=headers)
+        response, err, dummy = rest_api.put(api_root + "user-tags", body, header=headers)
         if err is not None:
             return False, 'Error: unexpected response on modifying tags: %s, %s' % (str(err), str(response))
         else:
             return True, None
 
-    def update_svm_password(self, base_url, rest_api, headers, svm_password):
+    def update_svm_password(self, api_root, rest_api, headers, svm_password):
         body = {'password': svm_password}
-        response, err, dummy = rest_api.put(base_url + "set-password", body, header=headers)
+        response, err, dummy = rest_api.put(api_root + "set-password", body, header=headers)
         if err is not None:
             return False, 'Error: unexpected response on modifying svm_password: %s, %s' % (str(err), str(response))
         else:
             return True, None
 
-    def update_tier_level(self, base_url, rest_api, headers, tier_level):
+    def update_tier_level(self, api_root, rest_api, headers, tier_level):
         body = {'level': tier_level}
-        response, err, dummy = rest_api.post(base_url + "change-tier-level", body, header=headers)
+        response, err, dummy = rest_api.post(api_root + "change-tier-level", body, header=headers)
         if err is not None:
             return False, 'Error: unexpected response on modify tier_level: %s, %s' % (str(err), str(response))
         else:

@@ -108,9 +108,9 @@ def mock_args(feature_flags=None, client_id=None):
         'refresh_token': 'ABCDEFGS'
     }
     if feature_flags is not None:
-        args.update({'feature_flags': feature_flags})
+        args['feature_flags'] = feature_flags
     if client_id is not None:
-        args.update({'client_id': client_id})
+        args['client_id'] = client_id
     return args
 
 
@@ -199,6 +199,41 @@ def test_get_json(mock_request):
     assert message == {'key': 'value'}
     assert error is None
     assert ocr == 'OCR_id'
+
+
+@patch('time.sleep')
+@patch('requests.request')
+def test_get_retries(mock_request, dont_sleep):
+    ''' get with no data '''
+    mock_request.side_effect = [
+        mockResponse(json_data=TOKEN_DICT, status_code=200),  # OAUTH
+        requests.exceptions.ConnectionError('Max retries exceeded with url:'),
+        requests.exceptions.ConnectionError('Max retries exceeded with url:'),
+        mockResponse(json_data={'key': 'value'}, status_code=200, headers={'OnCloud-Request-Id': 'OCR_id'})
+    ]
+    rest_api = create_restapi_object(mock_args())
+    message, error, ocr = rest_api.get('api', None)
+    print(message, error, ocr)
+    assert message == {'key': 'value'}
+    assert error is None
+    assert ocr == 'OCR_id'
+
+
+@patch('time.sleep')
+@patch('requests.request')
+def test_get_retries_exceeded(mock_request, dont_sleep):
+    ''' get with no data '''
+    mock_request.side_effect = [
+        mockResponse(json_data=TOKEN_DICT, status_code=200),  # OAUTH
+        requests.exceptions.ConnectionError('Max retries exceeded with url:'),
+        requests.exceptions.ConnectionError('Max retries exceeded with url:'),
+        requests.exceptions.ConnectionError('Max retries exceeded with url:'),
+        mockResponse(json_data={'key': 'value'}, status_code=200, headers={'OnCloud-Request-Id': 'OCR_id'})
+    ]
+    rest_api = create_restapi_object(mock_args())
+    message, error, ocr = rest_api.get('api', None)
+    print(message, error, ocr)
+    assert 'Max retries exceeded with url:' in error
 
 
 @patch('requests.request')
@@ -343,14 +378,25 @@ def test_has_feature_invalid_key():
     assert exc.value.args[0]['msg'] == msg
 
 
+def test_has_feature_invalid_bool():
+    ''' existing feature_flag with non boolean value '''
+    flag = 'deprecation_warning_key'
+    module = create_module(mock_args({flag: 'str'}))
+    with pytest.raises(AnsibleFailJson) as exc:
+        netapp_utils.has_feature(module, flag)
+    msg = "Error: expected bool type for feature flag"
+    assert msg in exc.value.args[0]['msg']
+
+
 STATUS_DICT = {
     'status': 1,
     'error': None
 }
 
 
+@patch('time.sleep')
 @patch('requests.request')
-def test_check_task_status(mock_request):
+def test_check_task_status(mock_request, mock_sleep):
     ''' successful get with 2 retries '''
     mock_request.side_effect = [
         mockResponse(json_data=TOKEN_DICT, status_code=200),  # OAUTH
@@ -366,8 +412,9 @@ def test_check_task_status(mock_request):
     assert error is None
 
 
+@patch('time.sleep')
 @patch('requests.request')
-def test_negative_check_task_status(mock_request):
+def test_negative_check_task_status(mock_request, mock_sleep):
     ''' get with 4 failed retries '''
     mock_request.side_effect = [
         mockResponse(json_data=TOKEN_DICT, status_code=200),  # OAUTH
@@ -384,8 +431,9 @@ def test_negative_check_task_status(mock_request):
     assert error == 'some exception'
 
 
+@patch('time.sleep')
 @patch('requests.request')
-def test_wait_on_completion(mock_request):
+def test_wait_on_completion(mock_request, mock_sleep):
     ''' successful get with 2 retries '''
     mock_request.side_effect = [
         mockResponse(json_data=TOKEN_DICT, status_code=200),  # OAUTH
@@ -399,8 +447,9 @@ def test_wait_on_completion(mock_request):
     assert error is None
 
 
+@patch('time.sleep')
 @patch('requests.request')
-def test_negative_wait_on_completion_failure(mock_request):
+def test_negative_wait_on_completion_failure(mock_request, mock_sleep):
     ''' successful get with 2 retries, but status is -1 '''
     mock_request.side_effect = [
         mockResponse(json_data=TOKEN_DICT, status_code=200),  # OAUTH
@@ -414,8 +463,9 @@ def test_negative_wait_on_completion_failure(mock_request):
     assert error == 'Failed to task action, error: task_error'
 
 
+@patch('time.sleep')
 @patch('requests.request')
-def test_negative_wait_on_completion_error(mock_request):
+def test_negative_wait_on_completion_error(mock_request, mock_sleep):
     ''' get with 4 failed retries '''
     mock_request.side_effect = [
         mockResponse(json_data=TOKEN_DICT, status_code=200),  # OAUTH
@@ -430,8 +480,9 @@ def test_negative_wait_on_completion_error(mock_request):
     assert error == 'some http exception'
 
 
+@patch('time.sleep')
 @patch('requests.request')
-def test_negative_wait_on_completion_timeout(mock_request):
+def test_negative_wait_on_completion_timeout(mock_request, mock_sleep):
     ''' successful get with 2 retries, but status is 0 '''
     mock_request.side_effect = [
         mockResponse(json_data=TOKEN_DICT, status_code=200),  # OAUTH

@@ -38,6 +38,9 @@ options:
       - 'working_environments_info'
       - 'aggregates_info'
       - 'accounts_info'
+      - 'account_info'
+      - 'agents_info'
+      - 'active_agents_info'
     default: 'all'
 
 notes:
@@ -159,10 +162,13 @@ class NetAppCloudmanagerInfo(object):
             working_environments_info=self.na_helper.get_working_environments_info,
             aggregates_info=self.get_aggregates_info,
             accounts_info=self.na_helper.get_accounts_info,
+            account_info=self.na_helper.get_account_info,
+            agents_info=self.na_helper.get_agents_info,
+            active_agents_info=self.na_helper.get_active_agents_info,
         )
-        self.headers = {
-            'X-Agent-Id': self.rest_api.format_cliend_id(self.parameters['client_id'])
-        }
+        self.headers = {}
+        if 'client_id' in self.parameters:
+            self.headers['X-Agent-Id'] = self.rest_api.format_cliend_id(self.parameters['client_id'])
 
     def get_aggregates_info(self, rest_api, headers):
         '''
@@ -198,23 +204,21 @@ class NetAppCloudmanagerInfo(object):
         '''
         Main get info function
         '''
-        info = self.methods[func](rest_api, self.headers)
-        return info
+        return self.methods[func](rest_api, self.headers)
 
     def apply(self):
         '''
         Apply action to the Cloud Manager
         :return: None
         '''
-        info = dict()
-        function_list = ["working_environments_info", "aggregates_info", "accounts_info"]
+        info = {}
         if 'all' in self.parameters['gather_subsets']:
-            self.parameters['gather_subsets'] = function_list
+            self.parameters['gather_subsets'] = self.methods.keys()
         for func in self.parameters['gather_subsets']:
-            if func in function_list:
+            if func in self.methods:
                 info[func] = self.get_info(func, self.rest_api)
             else:
-                msg = '%s is not a valid gather_subset. Only %s are allowed' % (func, function_list)
+                msg = '%s is not a valid gather_subset. Only %s are allowed' % (func, self.methods.keys())
                 self.module.fail_json(msg=msg)
         self.module.exit_json(changed=False, info=info)
 

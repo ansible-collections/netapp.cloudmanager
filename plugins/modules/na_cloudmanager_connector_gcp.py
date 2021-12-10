@@ -315,13 +315,13 @@ class NetAppCloudManagerConnectorGCP(object):
         # get account ID
         if 'account_id' not in self.parameters:
             # get account ID
-            response, error = self.na_helper.get_account(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api)
+            response, error = self.na_helper.get_or_create_account(self.rest_api)
             if error is not None:
                 self.module.fail_json(
                     msg="Error: unexpected response on getting account: %s, %s" % (str(error), str(response)))
             self.parameters['account_id'] = response
         # registerAgentTOServiceForGCP
-        response, error = self.na_helper.register_agent_to_service(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, "GCP", "")
+        response, error = self.na_helper.register_agent_to_service(self.rest_api, "GCP", "")
         if error is not None:
             self.module.fail_json(
                 msg="Error: register agent to service for gcp failed: %s, %s" % (str(error), str(response)))
@@ -471,7 +471,7 @@ class NetAppCloudManagerConnectorGCP(object):
         time.sleep(60)
         retries = 16
         while retries > 0:
-            agent, error = self.na_helper.get_occm_agent(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, client_id)
+            agent, error = self.na_helper.get_occm_agent_by_id(self.rest_api, client_id)
             if error is not None:
                 self.module.fail_json(
                     msg="Error: Not able to get occm status: %s, %s" % (str(error), str(agent)),
@@ -542,8 +542,7 @@ class NetAppCloudManagerConnectorGCP(object):
         # check occm status
         retries = 30
         while retries > 0:
-            agent, error = self.na_helper.get_occm_agent(self.rest_api.environment_data['CLOUD_MANAGER_HOST'],
-                                                         self.rest_api, self.parameters['client_id'])
+            agent, error = self.na_helper.get_occm_agent_by_id(self.rest_api, self.parameters['client_id'])
             if error is not None:
                 return "Error: Not able to get occm status after deleting VM: %s, %s" % (str(error), str(agent))
             if agent['status'] != ["active", "pending"]:
@@ -557,15 +556,14 @@ class NetAppCloudManagerConnectorGCP(object):
         return None
 
     def delete_occm_agents(self, agents):
-        error = self.na_helper.delete_occm_agents(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, agents)
+        error = self.na_helper.delete_occm_agents(self.rest_api, agents)
         if error:
             return "Error: deleting OCCM agent(s): %s" % error
         return None
 
     def get_occm_agents(self):
         if 'client_id' in self.parameters and self.parameters['state'] == 'absent':
-            agent, error = self.na_helper.get_occm_agent(self.rest_api.environment_data['CLOUD_MANAGER_HOST'],
-                                                         self.rest_api, self.parameters['client_id'])
+            agent, error = self.na_helper.get_occm_agent_by_id(self.rest_api, self.parameters['client_id'])
             if error == '403' and b'Action not allowed for user' in agent:
                 # assume the agent does not exist anymore
                 agents, error = [], None
@@ -573,9 +571,8 @@ class NetAppCloudManagerConnectorGCP(object):
             else:
                 agents = [agent]
         else:
-            agents, error = self.na_helper.get_occm_agents(self.rest_api.environment_data['CLOUD_MANAGER_HOST'],
-                                                           self.rest_api, self.parameters['account_id'],
-                                                           self.parameters['name'], 'GCP')
+            agents, error = self.na_helper.get_occm_agents_by_name(self.rest_api, self.parameters['account_id'],
+                                                                   self.parameters['name'], 'GCP')
         if error:
             self.module.fail_json(
                 msg="Error: getting OCCM agents: %s, %s" % (str(error), str(agents)))

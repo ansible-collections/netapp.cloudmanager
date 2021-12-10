@@ -42,7 +42,7 @@ try:
 except ImportError:
     ansible_version = 'unknown'
 
-COLLECTION_VERSION = "21.12.1"
+COLLECTION_VERSION = "21.13.0"
 PROD_ENVIRONMENT = {
     'CLOUD_MANAGER_HOST': 'cloudmanager.cloud.netapp.com',
     'AUTH0_DOMAIN': 'netapp-cloud-account.auth0.com',
@@ -107,7 +107,7 @@ def has_feature(module, feature_name):
     feature = get_feature(module, feature_name)
     if isinstance(feature, bool):
         return feature
-    module.fail_json(msg="Error: expected bool type for feature flag: %s" % feature_name)
+    module.fail_json(msg="Error: expected bool type for feature flag: %s, found %s" % (feature_name, type(feature)))
 
 
 def get_feature(module, feature_name):
@@ -157,9 +157,17 @@ class CloudManagerRestAPI(object):
     def format_cliend_id(self, client_id):
         return client_id if client_id.endswith('clients') else client_id + 'clients'
 
+    def build_url(self, api):
+        # most requests are sent to Cloud Manager, but for connectors we need to manage VM instances using AWS, Azure, or GCP APIs
+        if api.startswith('http'):
+            return api
+        # add host if API starts with / and host is not already included in self.url
+        prefix = self.environment_data['CLOUD_MANAGER_HOST'] if self.environment_data['CLOUD_MANAGER_HOST'] not in self.url and api.startswith('/') else ''
+        return self.url + prefix + api
+
     def send_request(self, method, api, params, json=None, data=None, header=None, authorized=True):
         ''' send http request and process response, including error conditions '''
-        url = self.url + api
+        url = self.build_url(api)
         headers = {
             'Content-type': "application/json",
             'Referer': "Ansible_NetApp",
@@ -168,7 +176,14 @@ class CloudManagerRestAPI(object):
             headers['Authorization'] = self.token_type + " " + self.token
         if header is not None:
             headers.update(header)
-        return self._send_request(method, url, params, json, data, headers)
+        for __ in range(3):
+            json_dict, error_details, on_cloud_request_id = self._send_request(method, url, params, json, data, headers)
+            # we observe this error with DELETE on agents-mgmt/agent (and sometimes on GET)
+            if error_details is not None and 'Max retries exceeded with url:' in error_details:
+                time.sleep(5)
+            else:
+                break
+        return json_dict, error_details, on_cloud_request_id
 
     def _send_request(self, method, url, params, json, data, headers):
         json_dict = None

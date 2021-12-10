@@ -20,13 +20,14 @@ version_added: '21.3.0'
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 
 description:
-- Create or delete Cloud Manager connector for AWS.
+  - Create or delete Cloud Manager connector for AWS.
+  - This module requires to be authenticated with AWS.  This can be done with C(aws configure).
 
 options:
 
   state:
     description:
-    - Whether the specified Cloud Manager connector for AWS should exist or not.
+      - Whether the specified Cloud Manager connector for AWS should exist or not.
     choices: ['present', 'absent']
     default: 'present'
     type: str
@@ -34,104 +35,104 @@ options:
   name:
     required: true
     description:
-    - The name of the Cloud Manager connector for AWS to manage.
+      - The name of the Cloud Manager connector for AWS to manage.
     type: str
 
   instance_type:
     description:
-    - The type of instance (for example, t3.xlarge). At least 4 CPU and 16 GB of memory are required.
+      - The type of instance (for example, t3.xlarge). At least 4 CPU and 16 GB of memory are required.
     type: str
     default: t3.xlarge
 
   key_name:
     description:
-    - The name of the key pair to use for the Connector instance.
+      - The name of the key pair to use for the Connector instance.
     type: str
 
   subnet_id:
     description:
-    - The ID of the subnet for the instance.
+      - The ID of the subnet for the instance.
     type: str
 
   region:
     required: true
     description:
-    - The region where the Cloud Manager Connector will be created.
+      - The region where the Cloud Manager Connector will be created.
     type: str
 
   instance_id:
     description:
-    - The ID of the EC2 instance used for delete.
+      - The ID of the EC2 instance used for delete.
     type: str
 
   client_id:
     description:
-    - The unique client ID of the Connector.
+      - The unique client ID of the Connector.
     type: str
 
   ami:
     description:
-    - The image ID.
+      - The image ID.
     type: str
 
   company:
     description:
-    - The name of the company of the user.
+      - The name of the company of the user.
     type: str
 
   security_group_ids:
     description:
-    - The IDs of the security groups for the instance, multiple security groups can be provided separated by ','.
+      - The IDs of the security groups for the instance, multiple security groups can be provided separated by ','.
     type: list
     elements: str
 
   iam_instance_profile_name:
     description:
-    - The name of the instance profile for the Connector.
+      - The name of the instance profile for the Connector.
     type: str
 
   enable_termination_protection:
     description:
-    - Indicates whether to enable termination protection on the instance.
+      - Indicates whether to enable termination protection on the instance.
     type: bool
     default: false
 
   associate_public_ip_address:
     description:
-    - Indicates whether to associate a public IP address to the instance. If not provided, the association will be done based on the subnet's configuration.
+      - Indicates whether to associate a public IP address to the instance. If not provided, the association will be done based on the subnet's configuration.
     type: bool
     default: true
 
   account_id:
     description:
-    - The NetApp tenancy account ID.
+      - The NetApp tenancy account ID.
     type: str
 
   proxy_url:
     description:
-    - The proxy URL, if using a proxy to connect to the internet.
+      - The proxy URL, if using a proxy to connect to the internet.
     type: str
 
   proxy_user_name:
     description:
-    - The proxy user name, if using a proxy to connect to the internet.
+      - The proxy user name, if using a proxy to connect to the internet.
     type: str
 
   proxy_password:
     description:
-    - The proxy password, if using a proxy to connect to the internet.
+      - The proxy password, if using a proxy to connect to the internet.
     type: str
 
   proxy_certificates:
     description:
-    - The proxy certificates, a list of certificate file names.
+      - The proxy certificates, a list of certificate file names.
     type: list
     elements: str
     version_added: 21.5.0
 
   aws_tag:
     description:
-    - Additional tags for the AWS EC2 instance.
+      - Additional tags for the AWS EC2 instance.
     type: list
     elements: dict
     suboptions:
@@ -243,7 +244,6 @@ class NetAppCloudManagerConnectorAWS(object):
             argument_spec=self.argument_spec,
             required_if=[
                 ['state', 'present', ['company', 'iam_instance_profile_name', 'key_name', 'security_group_ids', 'subnet_id']],
-                ['state', 'absent', ['instance_id', 'client_id', 'account_id']]
             ],
             required_one_of=[['refresh_token', 'sa_client_id']],
             required_together=[['sa_client_id', 'sa_secret_key']],
@@ -251,7 +251,7 @@ class NetAppCloudManagerConnectorAWS(object):
         )
 
         if HAS_AWS_LIB is False:
-            self.module.fail_json(msg="the python AWS library boto3 and botocore is required. Command is pip install boto3."
+            self.module.fail_json(msg="the python AWS packages boto3 and botocore are required. Command is pip install boto3."
                                       "Import error: %s" % str(IMPORT_EXCEPTION))
 
         self.na_helper = NetAppModule()
@@ -269,19 +269,13 @@ class NetAppCloudManagerConnectorAWS(object):
 
         response = None
         client = boto3.client('ec2', region_name=self.parameters['region'])
+        filters = [{'Name': 'tag:Name', 'Values': [self.parameters['name']]},
+                   {'Name': 'tag:OCCMInstance', 'Values': ['true']}]
 
-        if self.parameters.get('ami') is None:
-            self.parameters['ami'] = self.get_ami()
-
-        # filters = [{'Name': 'instance-type', 'Values': [self.parameters['instance_type']]},
-        #            {'Name': 'key-name', 'Values': [self.parameters['key_name']]},
-        #            {'Name': 'subnet-id', 'Values': [self.parameters['subnet_id']]},
-        #            {'Name': 'image-id', 'Values': [self.parameters['ami']]},
-        #            {'Name': 'tag:Name', 'Values': [self.parameters['name']]}
-        #            ]
+        kwargs = {'Filters': filters} if self.parameters.get('instance_id') is None else {'InstanceIds': [self.parameters['instance_id']]}
 
         try:
-            response = client.describe_instances(InstanceIds=[self.parameters['instance_id']])
+            response = client.describe_instances(**kwargs)
 
         except ClientError as error:
             self.module.fail_json(msg=to_native(error), exception=traceback.format_exc())
@@ -289,7 +283,12 @@ class NetAppCloudManagerConnectorAWS(object):
         if len(response['Reservations']) == 0:
             return None
 
-        return response['Reservations'][0]['Instances'][0]['State']['Name']
+        actives = [instance for reservation in response['Reservations'] for instance in reservation['Instances'] if instance['State']['Name'] != 'terminated']
+        if len(actives) == 1:
+            return actives[0]
+        if not actives:
+            return None
+        self.module.fail_json(msg="Error: found multiple instances for name=%s: %s" % (self.parameters['name'], str(actives)))
 
     def get_ami(self):
         """
@@ -412,18 +411,19 @@ class NetAppCloudManagerConnectorAWS(object):
         time.sleep(120)
         retries = 16
         while retries > 0:
-            occm_resp, error = self.na_helper.check_occm_status(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api, client_id)
+            agent, error = self.na_helper.get_occm_agent_by_id(self.rest_api, client_id)
             if error is not None:
                 self.module.fail_json(
-                    msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
-            if occm_resp['agent']['status'] == "active":
+                    msg="Error: not able to get occm status: %s, %s" % (str(error), str(agent)),
+                    client_id=client_id, instance_id=result['Instances'][0]['InstanceId'])
+            if agent['status'] == "active":
                 break
             else:
                 time.sleep(30)
-            retries = retries - 1
+            retries -= 1
         if retries == 0:
             # Taking too long for status to be active
-            return self.module.fail_json(msg="Taking too long for OCCM agent to be active or not properly setup")
+            return self.module.fail_json(msg="Error: taking too long for OCCM agent to be active or not properly setup")
 
         return client_id, result['Instances'][0]['InstanceId']
 
@@ -445,6 +445,14 @@ class NetAppCloudManagerConnectorAWS(object):
 
         return vpc_result['Subnets'][0]['VpcId']
 
+    def set_account_id(self):
+        if self.parameters.get('account_id') is None:
+            response, error = self.na_helper.get_or_create_account(self.rest_api)
+            if error is not None:
+                return error
+            self.parameters['account_id'] = response
+        return None
+
     def register_agent_to_service(self):
         """
         Register agent to service and collect userdata by setting up connector
@@ -454,11 +462,9 @@ class NetAppCloudManagerConnectorAWS(object):
         vpc = self.get_vpc()
 
         if self.parameters.get('account_id') is None:
-            response, error = self.na_helper.get_account(self.rest_api.environment_data['CLOUD_MANAGER_HOST'], self.rest_api)
+            error = self.set_account_id()
             if error is not None:
-                self.module.fail_json(
-                    msg="Error: unexpected response on getting account: %s, %s" % (str(error), str(response)))
-            self.parameters['account_id'] = response
+                self.module.fail_json(msg="Error: failed to get account: %s." % str(error))
 
         headers = {
             "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
@@ -483,10 +489,10 @@ class NetAppCloudManagerConnectorAWS(object):
             }
         }
 
-        register_api = '%s/agents-mgmt/connector-setup' % self.rest_api.environment_data['CLOUD_MANAGER_HOST']
+        register_api = '/agents-mgmt/connector-setup'
         response, error, dummy = self.rest_api.post(register_api, body, header=headers)
         if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on getting userdata for connector setup: %s, %s" % (str(error), str(response)))
+            self.module.fail_json(msg="Error: unexpected response on connector setup: %s, %s" % (str(error), str(response)))
         client_id = response['clientId']
         client_secret = response['clientSecret']
 
@@ -504,19 +510,16 @@ class NetAppCloudManagerConnectorAWS(object):
             'localAgent': True
         }
 
-        proxy_certificates = []
         if self.parameters.get('proxy_certificates') is not None:
-            for each in self.parameters['proxy_certificates']:
-                try:
-                    data = open(each, "r").read()
-                except OSError:
-                    self.module.fail_json(msg="Error: Could not open/read file of proxy_certificates: %s" % str(each))
-
-                encoded_certificate = base64.b64encode(data)
+            proxy_certificates = []
+            for certificate_file in self.parameters['proxy_certificates']:
+                encoded_certificate, error = self.na_helper.encode_certificates(certificate_file)
+                if error:
+                    self.module.fail_json(msg="Error: could not open/read file '%s' of proxy_certificates: %s" % (certificate_file, error))
                 proxy_certificates.append(encoded_certificate)
 
-        if len(proxy_certificates) > 0:
-            u_data['proxySettings']['proxyCertificates'] = proxy_certificates
+            if proxy_certificates:
+                u_data['proxySettings']['proxyCertificates'] = proxy_certificates
 
         user_data = self.na_helper.convert_data_to_tabbed_jsonstring(u_data)
 
@@ -539,54 +542,103 @@ class NetAppCloudManagerConnectorAWS(object):
         except ClientError as error:
             self.module.fail_json(msg=to_native(error), exception=traceback.format_exc())
 
+        if 'client_id' not in self.parameters:
+            return None
+
         retries = 30
         while retries > 0:
-            occm_resp, error = self.na_helper.check_occm_status(self.rest_api.environment_data['CLOUD_MANAGER_HOST'],
-                                                                self.rest_api, self.parameters['client_id'])
+            agent, error = self.na_helper.get_occm_agent_by_id(self.rest_api, self.parameters['client_id'])
             if error is not None:
-                self.module.fail_json(
-                    msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
-            if occm_resp['agent']['status'] != "active":
+                return "Error: not able to get occm agent status after deleting instance: %s, %s." % (str(error), str(agent))
+            if agent['status'] != "active":
                 break
             else:
                 time.sleep(10)
-            retries = retries - 1
+            retries -= 1
         if retries == 0:
             # Taking too long for terminating OCCM
-            return self.module.fail_json(msg="Taking too long for instance to finish terminating")
+            return "Error: taking too long for instance to finish terminating."
+        return None
 
-        client = self.rest_api.format_cliend_id(self.parameters['client_id'])
-        delete_occum_url = "%s/agents-mgmt/agent/%s" % (self.rest_api.environment_data['CLOUD_MANAGER_HOST'], client)
-        headers = {
-            "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
-            "X-Tenancy-Account-Id": self.parameters['account_id']
-        }
+    def get_occm_agents(self):
+        if 'client_id' in self.parameters:
+            agent, error = self.na_helper.get_occm_agent_by_id(self.rest_api, self.parameters['client_id'])
+            if str(error) == '403' and 'Action not allowed for user' in str(agent):
+                # assume the agent does not exist anymore
+                agents, error = [], None
+                self.module.warn('Client Id %s was not found for this account.' % self.parameters['client_id'])
+            else:
+                agents = [agent]
+        else:
+            self.set_account_id()
+            if 'account_id' in self.parameters:
+                agents, error = self.na_helper.get_occm_agents_by_name(self.rest_api, self.parameters['account_id'],
+                                                                       self.parameters['name'], 'AWS')
+            else:
+                self.module.warn('Without account_id, some agents may still exist.')
+                agents, error = [], None
+        if error:
+            self.module.fail_json(
+                msg="Error: getting OCCM agents: %s, %s" % (str(error), str(agents)))
+        return agents
 
-        response, error, dummy = self.rest_api.delete(delete_occum_url, None, header=headers)
-        if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on deleting OCCM: %s, %s" % (str(error), str(response)))
+    def set_client_id(self):
+        agents = self.get_occm_agents()
+        client_id = self.parameters.get('client_id')
+        if client_id is None:
+            active_client_ids = [agent['agentId'] for agent in agents if 'agentId' in agent and agent['status'] == 'active']
+            if len(active_client_ids) == 1:
+                client_id = active_client_ids[0]
+                self.parameters['client_id'] = client_id
+        return client_id, agents
+
+    def delete_occm_agents(self, agents):
+        error = self.na_helper.delete_occm_agents(self.rest_api, agents)
+        if error:
+            return "Error: deleting OCCM agent(s): %s" % error
+        return None
 
     def apply(self):
         """
         Apply action to the Cloud Manager connector for AWS
         :return: None
         """
-        client_id = None
-        instance_id = None
-        if self.module.check_mode:
-            pass
-        else:
-            if self.parameters['state'] == 'present':
-                client_id, instance_id = self.create_instance()
-                self.na_helper.changed = True
-            elif self.parameters['state'] == 'absent':
-                status = self.get_instance()
-                if status != 'terminated':
-                    self.delete_instance()
-                    self.na_helper.changed = True
+        results = {
+            'account_id': None,
+            'client_id': None,
+            'instance_id': None
+        }
+        agents = None
+        current = self.get_instance()
+        if current or self.parameters['state'] == 'absent':
+            if self.parameters.get('instance_id') is None and current:
+                self.parameters['instance_id'] = current['InstanceId']
+            results['instance_id'] = self.parameters.get('instance_id')
+            results['client_id'], agents = self.set_client_id()
+            if current is None and agents:
+                # it's possible the VM instance does not exist, but the clients are still present.
+                current = agents
 
-        self.module.exit_json(changed=self.na_helper.changed,
-                              msg={'client_id': client_id, 'instance_id': instance_id, 'account_id': self.parameters['account_id']})
+        cd_action = self.na_helper.get_cd_action(current, self.parameters)
+        if cd_action is None and self.parameters['state'] == 'present':
+            results['modify'] = 'Note: modifying an existing connector is not supported at this time.'
+
+        if not self.module.check_mode and self.na_helper.changed:
+            if cd_action == 'create':
+                results['client_id'], results['instance_id'] = self.create_instance()
+            elif cd_action == 'delete':
+                errors = []
+                if self.parameters.get('instance_id'):
+                    errors.append(self.delete_instance())
+                if agents:
+                    errors.append(self.delete_occm_agents(agents))
+                errors = [error for error in errors if error]
+                if errors:
+                    self.module.fail_json(msg='Errors deleting instance or client: %s' % ', '.join(errors))
+
+        results['account_id'] = self.parameters.get('account_id')
+        results['changed'] = self.na_helper.changed
+        self.module.exit_json(**results)
 
 
 def main():
