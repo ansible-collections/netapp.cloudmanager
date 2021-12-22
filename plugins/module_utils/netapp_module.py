@@ -35,6 +35,7 @@ from copy import deepcopy
 import json
 import re
 import base64
+import time
 
 
 def cmp(a, b):
@@ -861,11 +862,11 @@ class NetAppModule(object):
 
         return response['nssAccounts'][0]['publicId'], None
 
-    def get_working_environment_property(self, rest_api, headers):
+    def get_working_environment_property(self, rest_api, headers, fields):
         # GET /vsa/working-environments/{workingEnvironmentId}?fields=status,awsProperties,ontapClusterProperties
         api = '%s/working-environments/%s' % (rest_api.api_root_path, self.parameters['working_environment_id'])
-        api += '?fields=status,providerProperties,ontapClusterProperties'
-        response, error, dummy = rest_api.get(api, None, header=headers)
+        params = {'fields': ','.join(fields)}
+        response, error, dummy = rest_api.get(api, params=params, header=headers)
         if error:
             return None, "Error: get_working_environment_property %s" % error
         return response, None
@@ -882,6 +883,8 @@ class NetAppModule(object):
     def current_label_exist(self, current, desired, is_ha=False):
         current_key_set = set(current.keys())
         # Ignore auto generated gcp label in CVO GCP HA
+        current_key_set.discard('gcp_resource_id')
+        current_key_set.discard('count-down')
         if is_ha:
             current_key_set.discard('partner-platform-serial-number')
         # python 2.6 doe snot support set comprehension
@@ -891,9 +894,22 @@ class NetAppModule(object):
         else:
             return False, 'Error: label_key %s in gcp_label cannot be removed' % str(current_key_set)
 
+    def is_label_value_changed(self, current_tags, desired_tags):
+        tag_keys = list(current_tags.keys())
+        user_tag_keys = [key for key in tag_keys if
+                         key not in ('count-down', 'gcp_resource_id', 'partner-platform-serial-number')]
+        desired_keys = [a_dict['label_key'] for a_dict in desired_tags]
+        if user_tag_keys == desired_keys:
+            for tag in desired_tags:
+                if current_tags[tag['label_key']] != tag['label_value']:
+                    return True
+            return False
+        else:
+            return True
+
     def compare_gcp_labels(self, current_tags, user_tags, is_ha):
         '''
-        Update user-tag API behaves differntly in GCP CVO.
+        Update user-tag API behaves differently in GCP CVO.
         It only supports adding gcp_labels and modifying the values of gcp_labels. Removing gcp_label is not allowed.
         '''
         # check if any current gcp_labels are going to be removed or not
@@ -905,8 +921,11 @@ class NetAppModule(object):
         resp, error = self.current_label_exist(current_tags, user_tags, is_ha)
         if error is not None:
             return None, error
-        else:
+        if self.is_label_value_changed(current_tags, user_tags):
             return True, None
+        else:
+            # no change
+            return None, None
 
     def compare_cvo_tags_labels(self, current_tags, user_tags, tag_name):
         '''
@@ -915,7 +934,10 @@ class NetAppModule(object):
         aws_tag/azure_tag: tag_key, tag_label
         '''
         # azure has one extra azure_tag DeployedByOccm created automatically and it cannot be modified.
-        current_len = len(current_tags) - 1 if tag_name == 'azure_tag' else len(current_tags)
+        tag_keys = list(current_tags.keys())
+        user_tag_keys = [key for key in tag_keys if key != 'DeployedByOccm']
+        current_len = len(tag_keys)
+        # current_len = len(current_tags) - 1 if tag_name == 'azure_tag' else len(current_tags)
         resp, error = self.user_tag_key_unique(user_tags, 'tag_key')
         if error is not None:
             return None, error
@@ -947,7 +969,11 @@ class NetAppModule(object):
             if tag_name in parameters:
                 return self.compare_gcp_labels(current['userTags'], parameters[tag_name], current['isHA'])
             # if both are empty, no need to update
-            if current['isHA'] and len(current['userTags']) == 1 and 'partner-platform-serial-number' in current['userTags']:
+            # Ignore auto generated gcp label in CVO GCP
+            # 'count-down', 'gcp_resource_id', and 'partner-platform-serial-number'(HA)
+            tag_keys = list(current['userTags'].keys())
+            user_tag_keys = [key for key in tag_keys if key not in ('count-down', 'gcp_resource_id', 'partner-platform-serial-number')]
+            if not user_tag_keys:
                 return False, None
             else:
                 return None, 'Error:  Cannot remove current gcp_labels'
@@ -959,9 +985,13 @@ class NetAppModule(object):
             return self.compare_cvo_tags_labels(current['userTags'], parameters[tag_name], tag_name)
 
     def get_modify_cvo_params(self, rest_api, headers, desired, provider):
-        modified = ['svm_password']
+        modified = []
+        if desired['update_svm_password']:
+            modified = ['svm_password']
         # Get current working environment property
-        we, err = self.get_working_environment_property(rest_api, headers)
+        we, err = self.get_working_environment_property(rest_api, headers,
+                                                        ['providerProperties', 'ontapClusterProperties.fields(upgradeVersions)'])
+
         tier_level = we['ontapClusterProperties']['capacityTierInfo']['tierLevel']
 
         # collect changed attributes
@@ -970,6 +1000,26 @@ class NetAppModule(object):
                 modified.append('tier_level')
         elif tier_level != desired['tier_level']:
             modified.append('tier_level')
+
+        if desired['upgrade_ontap_version'] is True:
+            if desired['use_latest_version'] or desired['ontap_version'] == 'latest':
+                return None, "Error: To upgrade ONTAP image, the ontap_version must be a specific version"
+            current_version = 'ONTAP-' + we['ontapClusterProperties']['ontapVersion']
+            if not desired['ontap_version'].startswith(current_version):
+                if we['ontapClusterProperties']['upgradeVersions'] is not None:
+                    available_versions = []
+                    for image_info in we['ontapClusterProperties']['upgradeVersions']:
+                        available_versions.append(image_info['imageVersion'])
+                        # AWS ontap_version format: ONTAP-x.x.x.Tx pattern
+                        # AZURE ontap_version format: ONTAP-x.x.x.Tx.azure or .azureha for HA
+                        # GCP ontap_version format: ONTAP-x.x.x.Tx.gcp or .gcpha for HA
+                        # Tx is not relevant for ONTAP version. But it is needed for the CVO creation
+                        # upgradeVersion imageVersion format: ONTAP-x.x.x
+                        if desired['ontap_version'].startswith(image_info['imageVersion']):
+                            modified.append('ontap_version')
+                            break
+                    else:
+                        return None, "Error: No ONTAP image available for version %s. Available versions: %s" % (desired['ontap_version'], available_versions)
 
         tag_name = {
             'aws': 'aws_tag',
@@ -1044,3 +1094,61 @@ class NetAppModule(object):
             return False, 'Error: unexpected response on modify tier_level: %s, %s' % (str(err), str(response))
         else:
             return True, None
+
+    def set_config_flag(self, rest_api, headers):
+        body = {'value': True, 'valueType': 'BOOLEAN'}
+        base_url = '/occm/api/occm/config/skip-eligibility-paygo-upgrade'
+        response, err, dummy = rest_api.put(base_url, body, header=headers)
+        if err is not None:
+            return False, "set_config_flag error"
+        else:
+            return True, None
+
+    def do_ontap_image_upgrade(self, rest_api, headers, desired):
+        # get ONTAP image version
+        we, err = self.get_working_environment_property(rest_api, headers, ['ontapClusterProperties.fields(upgradeVersions)'])
+        if err is not None:
+            return False, 'Error: get_working_environment_property failed: %s' % (str(err))
+        body = {'updateType': "OCCM_PROVIDED"}
+        for image_info in we['ontapClusterProperties']['upgradeVersions']:
+            if image_info['imageVersion'] in desired:
+                body['updateParameter'] = image_info['imageVersion']
+                break
+        # upgrade
+        base_url = "%s/working-environments/%s/update-image" % (rest_api.api_root_path, self.parameters['working_environment_id'])
+        response, err, dummy = rest_api.post(base_url, body, header=headers)
+        if err is not None:
+            return False, 'Error: unexpected response on do_ontap_image_upgrade: %s, %s' % (str(err), str(response))
+        else:
+            return True, None
+
+    def wait_ontap_image_upgrade_complete(self, rest_api, headers, desired):
+        retry_count = 65
+        if self.parameters['is_ha'] is True:
+            retry_count *= 2
+        for count in range(retry_count):
+            # get CVO status
+            we, err = self.get_working_environment_property(rest_api, headers, ['status', 'ontapClusterProperties'])
+            if err is not None:
+                return False, 'Error: get_working_environment_property failed: %s' % (str(err))
+            if we['status']['status'] != "UPDATING" and we['ontapClusterProperties']['ontapVersion'] != "":
+                if we['ontapClusterProperties']['ontapVersion'] in desired:
+                    return True, None
+            time.sleep(60)
+
+        return False, 'Error: Taking too long for CVO to be active or not properly setup'
+
+    def upgrade_ontap_image(self, rest_api, headers, desired):
+        # set flag
+        dummy, err = self.set_config_flag(rest_api, headers)
+        if err is not None:
+            return False, err
+        # upgrade
+        dummy, err = self.do_ontap_image_upgrade(rest_api, headers, desired)
+        if err is not None:
+            return False, err
+        # check upgrade status
+        dummy, err = self.wait_ontap_image_upgrade_complete(rest_api, headers, desired)
+        if err is not None:
+            return False, err
+        return True, None

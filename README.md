@@ -40,12 +40,17 @@ https://github.com/ansible-collections/netapp/wiki
   - na_cloudmanager_connector_aws - make the module idempotent for create and delete.
   - na_cloudmanager_connector_aws - automatically fetch client_id and instance_id for delete.
   - na_cloudmanager_connector_aws - report client_id if connector already exists.
-  - na_cloudmanager_info - new subsets - account_info, agents_info, active_agents_info
+  - na_cloudmanager_info - new subsets - account_info, agents_info, active_agents_info.
+  - Add ONTAP image upgrade feature for AWS, AZURE and GCP CVOs. Add ``upgrade_ontap_version`` to indicate if upgrade ONTAP is needed. It only can be used when ``use_latest_version`` is false and ``ontap_version`` is a specific version.
+
+### Bug Fixes
+  - na_cloudmanager_cvo_gcp - handle extra auto-gen GCP labels to fix `gcp_labels` update failure.
+  - Add ``update_svm_password`` for ``svm_password`` update on AWS, AZURE and GCP CVOs. Update ``svm_password`` if ``update_svm_password`` is true.
 
 ## 21.12.1
 
 ### Bug Fixes
-  - na_cloudmanager_connector_aws - fix default ami not found in the region on resource file
+  - na_cloudmanager_connector_aws - fix default ami not found in the region on resource file.
   - na_cloudmanager_snapmirror - report actual error rather than None with "Error getting destination info".
 
 ## 21.12.0
@@ -67,7 +72,7 @@ https://github.com/ansible-collections/netapp/wiki
   - na_cloudmanager_connector_gcp - make the module idempotent for create and delete.
   - na_cloudmanager_connector_gcp - automatically fetch client_id for delete.
   - na_cloudmanager_connector_gcp - report client_id if connector already exists.
-  - all modules - better error reporting if refresh_token is not valid.
+  - all modules - better error reporting if ``refresh_token`` is not valid.
 
 ### Bug Fixes
   - na_cloudmanager_connector_gcp - typeError when using proxy certificates.
@@ -78,7 +83,7 @@ https://github.com/ansible-collections/netapp/wiki
   - Adding support update on `svm_password`, `tier_level`, `aws_tag`, `azure_tag` and `gcp_labels` for all CVOs. Only these parameters will be modified on the existing CVOs.
 
 ### Bug Fixes
-  - na_cloudmanager_snapmirror - key error CloudProviderName for ONPREM operation
+  - na_cloudmanager_snapmirror - key error CloudProviderName for ONPREM operation.
 
 ## New Options
   - Adding new parameter `ha_enable_https` for HA CVO to enable the HTTPS connection from CVO to storage accounts. This can impact write performance. The default is false.
@@ -93,50 +98,50 @@ https://github.com/ansible-collections/netapp/wiki
   - Adding pd-balanced support on ``gcp_volume_type`` CVO GCP and ``provider_volume_type`` for na_cloudmanager_snapmirror and na_cloudmanager_volume.
 
 ### Bug Fixes
-  - Change `virtual_machine_size` default value to Standard_DS3_v2
+  - Change `virtual_machine_size` default value to Standard_DS3_v2.
 
 ## 21.8.0
 
 ### New Options
-  - Adding stage environment to all modules in cloudmanager
+  - Adding stage environment to all modules in cloudmanager.
   - Adding service account support on API operations in cloudmanager: `sa_client_id` and `sa_secret_key`. `refresh_token` will be ignored if service account information is provided.
 
 ### Bug Fixes
-  - Accept client_id end with or without 'clients'
+  - Accept client_id end with or without 'clients'.
 
 ## 21.7.0
 
 ### New Options
-  - na_cloudmanager_cvo_aws: Support one new ebs_volume_type gp3
-  - Adding stage environemt to all modules in cloudmanager
+  - na_cloudmanager_cvo_aws: Support one new ebs_volume_type gp3.
+  - Adding stage environemt to all modules in cloudmanager.
   - na_cloudmanager_volume: Add `aggregate_name` support on volume creation.
-  - na_cloudmanager_cvo_aws: Support one new `ebs_volume_type` gp3
-  - na_cloudmanager_connector_azure: Add `subnet_name` as aliases of `subnet_id`, `vnet_name` as aliases of `vnet_id`
-  - na_cloudmanager_aggregate - Add provider_volume_type gp3 support.
-  - na_cloudmanager_volume - Add provider_volume_type gp3 support.
-  - na_cloudmanager_snapmirror - Add provider_volume_type gp3 support.
+  - na_cloudmanager_cvo_aws: Support one new `ebs_volume_type` gp3.
+  - na_cloudmanager_connector_azure: Add `subnet_name` as aliases of `subnet_id`, `vnet_name` as aliases of `vnet_id`.
+  - na_cloudmanager_aggregate - Add ``provider_volume_type`` gp3 support.
+  - na_cloudmanager_volume - Add ``provider_volume_type`` gp3 support.
+  - na_cloudmanager_snapmirror - Add ``provider_volume_type`` gp3 support.
    
 ### Bug Fixes
-  - na_cloudmanager_aggregate: Improve error message
-  - na_cloudmanager_cvo_gcp: Apply `network_project_id` on vpc1_cluster_connectivity, vpc2_ha_connectivity, vpc3_data_replication, subnet1_cluster_connectivity, subnet2_ha_connectivity, subnet3_data_replication
-  - na_cloudmanager_connector_gcp: rename option `service_account_email` and `service_account_path` to `gcp_service_account_email` and `gcp_service_account_path` respectively
-  - na_cloudmanager_connector_azure: Fix KeyError client_id
-  - na_cloudmanager_nss_account: Improve error message
-  - na_cloudmanager_volume: Improve error message
+  - na_cloudmanager_aggregate: Improve error message.
+  - na_cloudmanager_cvo_gcp: Apply `network_project_id` on vpc1_cluster_connectivity, vpc2_ha_connectivity, vpc3_data_replication, subnet1_cluster_connectivity, subnet2_ha_connectivity, subnet3_data_replication.
+  - na_cloudmanager_connector_gcp: rename option `service_account_email` and `service_account_path` to `gcp_service_account_email` and `gcp_service_account_path` respectively.
+  - na_cloudmanager_connector_azure: Fix KeyError client_id.
+  - na_cloudmanager_nss_account: Improve error message.
+  - na_cloudmanager_volume: Improve error message.
 
 ## 21.6.0
 
 ### New Modules
-  - na_cloudmanager_snapmirror: Create or Delete snapmirror on Cloud Manager
+  - na_cloudmanager_snapmirror: Create or Delete snapmirror on Cloud Manager.
 
 ### Bug Fixes
-  - na_cloudmanager_connector_gcp: Make client_id as optional
-  - na_cloudmanager_cvo_gcp: Change vpc_id from optional to required.
+  - na_cloudmanager_connector_gcp: Make client_id as optional.
+  - na_cloudmanager_cvo_gcp: Change ``vpc_id`` from optional to required.
 
 ## 21.5.1
 
 ### Bug fixes
-  - na_cloudmanager_cifs_server: Fix incorrect API call when is_workgroup is true
+  - na_cloudmanager_cifs_server: Fix incorrect API call when is_workgroup is true.
   - na_cloudmanager_connector_azure: Fix python error - msrest.exceptions.ValidationError. Parameter 'Deployment.properties' can not be None.
   - na_cloudmanager_connector_azure: Fix wrong example on the document and update account_id is required field on deletion.
 
@@ -144,19 +149,19 @@ https://github.com/ansible-collections/netapp/wiki
 
 ### New Options
   - na_cloudmanager_connector_aws: Return newly created Azure client ID in cloud manager, instance ID and account ID. New option `proxy_certificates`.
-  - na_cloudmanager_cvo_aws: Return newly created AWS working_environment_id
-  - na_cloudmanager_cvo_azure: Return newly created AZURE working_environment_id
-  - na_cloudmanager_cvo_gcp: Return newly created GCP working_environment_id
+  - na_cloudmanager_cvo_aws: Return newly created AWS working_environment_id.
+  - na_cloudmanager_cvo_azure: Return newly created AZURE working_environment_id.
+  - na_cloudmanager_cvo_gcp: Return newly created GCP working_environment_id.
 
 ## Bug Fixes
-  - na_cloudmanager_cvo_aws: Fix incorrect placement of platformSerialNumber in the resulting json structure
+  - na_cloudmanager_cvo_aws: Fix incorrect placement of platformSerialNumber in the resulting json structure.
 
 ## 21.4.0
 
 ### Module documentation changes
-  - Remove the period at the end of the line on short_description
-  - Add period at the end of the names in examples
-  - Add notes mentioning support check_mode
+  - Remove the period at the end of the line on short_description.
+  - Add period at the end of the names in examples.
+  - Add notes mentioning support check_mode.
 
 ### New Modules
   - na_cloudmanager_connector_azure: Create or delete Cloud Manager connector for Azure.

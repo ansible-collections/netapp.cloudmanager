@@ -95,6 +95,8 @@ class TestMyModule(unittest.TestCase):
             'subnet_id': 'subnet-test',
             'svm_password': 'password',
             'refresh_token': 'myrefresh_token',
+            'use_latest_version': False,
+            'ontap_version': 'ONTAP-9.10.0.T1.gcp',
             'is_ha': False,
             'gcp_service_account': 'test_account',
             'data_encryption_type': 'GCP',
@@ -430,13 +432,18 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.upgrade_ontap_image')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
-    def test_change_cloudmanager_cvo_gcp_ha(self, get_cvo, get_property, get_details, update_svm_password,
+    def test_change_cloudmanager_cvo_gcp_ha(self, get_cvo, get_property, get_details, upgrade_ontap_image, update_svm_password,
                                             update_cvo_tags, update_tier_level, get_token):
         data = self.set_args_create_cloudmanager_cvo_gcp()
         data['is_ha'] = True
+        data['svm_password'] = 'newpassword'
+        data['update_svm_password'] = True
+        data['ontap_version'] = 'ONTAP-9.10.1P3.T1.gcpha'
+        data['upgrade_ontap_version'] = True
         data['subnet0_node_and_data_connectivity'] = 'default'
         data['subnet1_cluster_connectivity'] = 'subnet2'
         data['subnet2_ha_connectivity'] = 'subnet3'
@@ -450,7 +457,7 @@ class TestMyModule(unittest.TestCase):
         data['license_type'] = 'gcp-ha-cot-premium-byol'
         set_module_args(data)
 
-        modify = ['svm_password', 'gcp_labels', 'tier_level']
+        modify = ['svm_password', 'gcp_labels', 'tier_level', 'ontap_version']
 
         my_cvo = {
             'name': 'TestA',
@@ -469,6 +476,9 @@ class TestMyModule(unittest.TestCase):
                             'licenseType': {'capacityLimit': {'size': 10.0, 'unit': 'TB'},
                                             'name': 'Cloud Volumes ONTAP Standard'},
                             'ontapVersion': '9.10.0.T1',
+                            'upgradeVersions': [{'autoUpdateAllowed': False,
+                                                 'imageVersion': 'ONTAP-9.10.1P3',
+                                                 'lastModified': 1634467078000}],
                             'writingSpeedState': 'NORMAL'},
                         'providerProperties': {
                             'regionName': 'us-west1',
@@ -492,7 +502,8 @@ class TestMyModule(unittest.TestCase):
                        'ontapClusterProperties': None,
                        'publicId': 'test',
                        'status': None,
-                       'userTags': {'key1': 'value1', 'partner-platform-serial-number': '90920140000000001019'},
+                       'userTags': {'key1': 'value1', 'partner-platform-serial-number': '90920140000000001019',
+                                    'gcp_resource_id': '14004944518802780827', 'count-down': '3'},
                        'workingEnvironmentType': 'VSA'}
         get_details.return_value = cvo_details, None
         get_token.return_value = 'test', 'test'
@@ -505,6 +516,8 @@ class TestMyModule(unittest.TestCase):
                 update_cvo_tags.return_value = True, None
             elif item == 'tier_level':
                 update_tier_level.return_value = True, None
+            elif item == 'ontap_version':
+                upgrade_ontap_image.return_value = True, None
 
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()

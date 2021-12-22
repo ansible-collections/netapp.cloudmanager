@@ -344,6 +344,22 @@ options:
     required: true
     type: str
 
+  upgrade_ontap_version:
+    description:
+    - Indicates whether to upgrade ONTAP image on the CVO.
+    - If the current version already matches the desired version, no action is taken.
+    type: bool
+    default: false
+    version_added: 21.13.0
+
+  update_svm_password:
+    description:
+    - Indicates whether to update svm_password on the CVO.
+    - When set to true, the module is not idempotent, as we cannot read the current password.
+    type: bool
+    default: false
+    version_added: 21.13.0
+
 notes:
 - Support check_mode.
 '''
@@ -495,6 +511,8 @@ class NetAppCloudManagerCVOGCP:
             workspace_id=dict(required=False, type='str'),
             writing_speed_state=dict(required=False, type='str'),
             zone=dict(required=True, type='str'),
+            upgrade_ontap_version=dict(required=False, type='bool', default=False),
+            update_svm_password=dict(required=False, type='bool', default=False),
         ))
 
         self.module = AnsibleModule(
@@ -509,7 +527,7 @@ class NetAppCloudManagerCVOGCP:
         )
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-        self.changeable_params = ['svm_password', 'tier_level', 'gcp_labels']
+        self.changeable_params = ['svm_password', 'tier_level', 'gcp_labels', 'ontap_version']
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = '/occm/api/gcp/%s' % ('ha' if self.parameters['is_ha'] else 'vsa')
@@ -739,6 +757,10 @@ class NetAppCloudManagerCVOGCP:
                     self.module.fail_json(changed=False, msg=error)
             if item == 'tier_level':
                 response, error = self.na_helper.update_tier_level(base_url, self.rest_api, self.headers, self.parameters['tier_level'])
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
+            if item == 'ontap_version':
+                response, error = self.na_helper.upgrade_ontap_image(self.rest_api, self.headers, self.parameters['ontap_version'])
                 if error is not None:
                     self.module.fail_json(changed=False, msg=error)
 

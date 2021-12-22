@@ -71,6 +71,8 @@ class TestMyModule(unittest.TestCase):
             'name': 'TestA',
             'client_id': 'test',
             'location': 'westus',
+            'use_latest_version': False,
+            'ontap_version': 'ONTAP-9.10.0.T1.azure',
             'vnet_id': 'vpc-test',
             'resource_group': 'test',
             'subnet_id': 'subnet-test',
@@ -322,14 +324,20 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.upgrade_ontap_image')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
-    def test_change_cloudmanager_cvo_azure(self, get_cvo, get_property, get_details, update_svm_password, update_cvo_tags,
+    def test_change_cloudmanager_cvo_azure(self, get_cvo, get_property, get_details, upgrade_ontap_image, update_svm_password, update_cvo_tags,
                                            update_tier_level, get_token):
-        set_module_args(self.set_default_args_pass_check())
+        data = self.set_default_args_pass_check()
+        data['svm_password'] = 'newpassword'
+        data['update_svm_password'] = True
+        data['ontap_version'] = 'ONTAP-9.10.1P3.T1.azure'
+        data['upgrade_ontap_version'] = True
+        set_module_args(data)
 
-        modify = ['svm_password', 'azure_tag', 'tier_level']
+        modify = ['svm_password', 'azure_tag', 'tier_level', 'ontap_version']
 
         my_cvo = {
             'name': 'TestA',
@@ -348,6 +356,9 @@ class TestMyModule(unittest.TestCase):
                             'licenseType': {'capacityLimit': {'size': 2000.0, 'unit': 'TB'},
                                             'name': 'Cloud Volumes ONTAP Capacity Based Charging'},
                             'ontapVersion': '9.10.0.T1.azure',
+                            'upgradeVersions': [{'autoUpdateAllowed': False,
+                                                 'imageVersion': 'ONTAP-9.10.1P3',
+                                                 'lastModified': 1634467078000}],
                             'writingSpeedState': 'NORMAL'},
                         'providerProperties': {
                             'cloudProviderAccountId': 'CloudProviderAccount-abcdwxyz',
@@ -387,6 +398,8 @@ class TestMyModule(unittest.TestCase):
                 update_cvo_tags.return_value = True, None
             elif item == 'tier_level':
                 update_tier_level.return_value = True, None
+            elif item == 'ontap_version':
+                upgrade_ontap_image.return_value = True, None
 
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
