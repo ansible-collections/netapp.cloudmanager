@@ -37,6 +37,11 @@ https://github.com/ansible-collections/netapp/wiki
 # Release Notes
 
 ## 21.13.0
+
+### New Modules
+  - na_cloudmanager_aws_fsx - NetApp AWS FSX
+
+### Minor Changes
   - na_cloudmanager_connector_aws - make the module idempotent for create and delete.
   - na_cloudmanager_connector_aws - automatically fetch client_id and instance_id for delete.
   - na_cloudmanager_connector_aws - report client_id if connector already exists.

@@ -14,3 +14,4 @@ action_groups:
     - na_cloudmanager_nss_account
     - na_cloudmanager_snapmirror
     - na_cloudmanager_volume
+    - na_cloudmanager_aws_fsx

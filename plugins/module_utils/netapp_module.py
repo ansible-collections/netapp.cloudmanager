@@ -194,6 +194,33 @@ class NetAppModule(object):
             return None, "Error: get_working_environment_details %s" % error
         return response, None
 
+    def get_aws_fsx_details(self, rest_api, header):
+        '''
+        Use working environment id and tenantID to get working environment details including:
+        name: working environment name,
+        publicID: working environment ID
+        '''
+        api = "/fsx-ontap/working-environments/"
+        api += self.parameters['tenant_id']
+        count = 0
+        fsx_details = None
+        response, error, dummy = rest_api.get(api, None, header=header)
+        if error:
+            return response, "Error: get_aws_fsx_details %s" % error
+        for each in response:
+            if each['name'] == self.parameters['name']:
+                count += 1
+                fsx_details = each
+            if self.parameters.get('working_environment_id'):
+                if each['id'] == self.parameters['working_environment_id']:
+                    return each, None
+        if count == 1:
+            return fsx_details, None
+        elif count > 1:
+            return response, "More than one AWS FSX found for %s, use working_environment_id for delete" \
+                             "or use different name for create" % self.parameters['name']
+        return None, None
+
     def get_working_environment_detail_for_snapmirror(self, rest_api, headers):
 
         source_working_env_detail, dest_working_env_detail = None, None
