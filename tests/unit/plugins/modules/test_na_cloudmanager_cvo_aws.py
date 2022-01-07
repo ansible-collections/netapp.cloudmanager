@@ -1,4 +1,4 @@
-# (c) 2021, NetApp, Inc
+# (c) 2022, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 ''' unit tests Cloudmanager Ansible module: '''
@@ -71,6 +71,8 @@ class TestMyModule(unittest.TestCase):
             'vpc_id': 'vpc-test',
             'subnet_id': 'subnet-test',
             'svm_password': 'password',
+            'license_type': 'cot-explore-paygo',
+            'instance_type': 'm5.xlarge',
             'refresh_token': 'myrefresh_token',
             'is_ha': False
         })
@@ -319,6 +321,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_instance_license_type')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
@@ -327,7 +330,7 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
     def test_change_cloudmanager_cvo_aws(self, get_cvo, get_property, get_details, upgrade_ontap_image, update_svm_password, update_cvo_tags,
-                                         update_tier_level, get_token):
+                                         update_tier_level, update_instance_license_type, get_token):
         data = self.set_default_args_pass_check()
         data['svm_password'] = 'newpassword'
         data['update_svm_password'] = True
@@ -335,7 +338,7 @@ class TestMyModule(unittest.TestCase):
         data['upgrade_ontap_version'] = True
         set_module_args(data)
 
-        modify = ['svm_password', 'aws_tag', 'tier_level', 'ontap_version']
+        modify = ['svm_password', 'aws_tag', 'tier_level', 'ontap_version', 'instance_type']
 
         my_cvo = {
             'name': 'TestA',
@@ -359,6 +362,11 @@ class TestMyModule(unittest.TestCase):
                                                  'imageVersion': 'ONTAP-9.10.1P3',
                                                  'lastModified': 1634467078000}],
                             'writingSpeedState': 'NORMAL'},
+                        'clusterProperties': {
+                            'instanceType': 'm5.xlarge',
+                            'licenseExpiryDate': 0,
+                            'licenseType': {'capacityLimit': {'size': 2.0, 'unit': 'TB'},
+                                            'name': 'Cloud Volumes ONTAP Explore'}, }
                         }
         get_property.return_value = cvo_property, None
         cvo_details = {'cloudProviderName': 'Amazon',
@@ -382,6 +390,8 @@ class TestMyModule(unittest.TestCase):
                 update_tier_level.return_value = True, None
             elif item == 'ontap_version':
                 upgrade_ontap_image.return_value = True, None
+            elif item == 'instance_type':
+                update_instance_license_type.return_value = True, None
 
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()

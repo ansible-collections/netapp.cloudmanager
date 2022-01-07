@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2021, NetApp, Inc
+# (c) 2022, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 '''
@@ -530,7 +530,7 @@ class NetAppCloudManagerCVOAWS:
 
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-        self.changeable_params = ['aws_tag', 'svm_password', 'tier_level', 'ontap_version']
+        self.changeable_params = ['aws_tag', 'svm_password', 'tier_level', 'ontap_version', 'instance_type']
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = '/occm/api/%s' % ('aws/ha' if self.parameters['is_ha'] else 'vsa')
@@ -738,6 +738,12 @@ class NetAppCloudManagerCVOAWS:
                     self.module.fail_json(changed=False, msg=error)
             if item == 'ontap_version':
                 response, error = self.na_helper.upgrade_ontap_image(self.rest_api, self.headers, self.parameters['ontap_version'])
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
+            if item == 'instance_type' or item == 'license_type':
+                response, error = self.na_helper.update_instance_license_type(base_url, self.rest_api, self.headers,
+                                                                              self.parameters['instance_type'],
+                                                                              self.parameters['license_type'])
                 if error is not None:
                     self.module.fail_json(changed=False, msg=error)
 

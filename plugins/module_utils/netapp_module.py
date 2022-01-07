@@ -4,7 +4,7 @@
 # still belong to the author of the module, and may assign their own license
 # to the complete work.
 #
-# Copyright (c) 2021, Laurent Nicolas <laurentn@netapp.com>
+# Copyright (c) 2022, Laurent Nicolas <laurentn@netapp.com>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -963,8 +963,7 @@ class NetAppModule(object):
         # azure has one extra azure_tag DeployedByOccm created automatically and it cannot be modified.
         tag_keys = list(current_tags.keys())
         user_tag_keys = [key for key in tag_keys if key != 'DeployedByOccm']
-        current_len = len(tag_keys)
-        # current_len = len(current_tags) - 1 if tag_name == 'azure_tag' else len(current_tags)
+        current_len = len(user_tag_keys)
         resp, error = self.user_tag_key_unique(user_tags, 'tag_key')
         if error is not None:
             return None, error
@@ -1016,8 +1015,16 @@ class NetAppModule(object):
         if desired['update_svm_password']:
             modified = ['svm_password']
         # Get current working environment property
-        we, err = self.get_working_environment_property(rest_api, headers,
-                                                        ['providerProperties', 'ontapClusterProperties.fields(upgradeVersions)'])
+        properties = ['ontapClusterProperties.fields(upgradeVersions)']
+        # instanceType in aws case is stored in clusterProperties
+        if provider == 'aws':
+            properties.append('clusterProperties')
+            instance_type_container = 'clusterProperties'
+        else:
+            properties.append('providerProperties')
+            instance_type_container = 'providerProperties'
+
+        we, err = self.get_working_environment_property(rest_api, headers, properties)
 
         tier_level = we['ontapClusterProperties']['capacityTierInfo']['tierLevel']
 
@@ -1027,6 +1034,9 @@ class NetAppModule(object):
                 modified.append('tier_level')
         elif tier_level != desired['tier_level']:
             modified.append('tier_level')
+
+        if we[instance_type_container]['instanceType'] != desired['instance_type']:
+            modified.append('instance_type')
 
         if desired['upgrade_ontap_version'] is True:
             if desired['use_latest_version'] or desired['ontap_version'] == 'latest':
@@ -1085,8 +1095,8 @@ class NetAppModule(object):
         unmodifiable = [attr for attr in modify if attr not in changeable_params]
         if unmodifiable:
             return None, "%s cannot be modified." % str(unmodifiable)
-        else:
-            return modify, None
+
+        return modify, None
 
     def update_cvo_tags(self, api_root, rest_api, headers, tag_name, tag_list):
         body = {}
@@ -1103,24 +1113,33 @@ class NetAppModule(object):
         response, err, dummy = rest_api.put(api_root + "user-tags", body, header=headers)
         if err is not None:
             return False, 'Error: unexpected response on modifying tags: %s, %s' % (str(err), str(response))
-        else:
-            return True, None
+
+        return True, None
 
     def update_svm_password(self, api_root, rest_api, headers, svm_password):
         body = {'password': svm_password}
         response, err, dummy = rest_api.put(api_root + "set-password", body, header=headers)
         if err is not None:
             return False, 'Error: unexpected response on modifying svm_password: %s, %s' % (str(err), str(response))
-        else:
-            return True, None
+
+        return True, None
 
     def update_tier_level(self, api_root, rest_api, headers, tier_level):
         body = {'level': tier_level}
         response, err, dummy = rest_api.post(api_root + "change-tier-level", body, header=headers)
         if err is not None:
             return False, 'Error: unexpected response on modify tier_level: %s, %s' % (str(err), str(response))
-        else:
-            return True, None
+
+        return True, None
+
+    def update_instance_license_type(self, api_root, rest_api, headers, instance_type, license_type):
+        body = {'instanceType': instance_type,
+                'licenseType': license_type}
+        response, err, dummy = rest_api.put(api_root + "license-instance-type", body, header=headers)
+        if err is not None:
+            return False, 'Error: unexpected response on modify instance_type and instance_type: %s, %s' % (str(err), str(response))
+
+        return True, None
 
     def set_config_flag(self, rest_api, headers):
         body = {'value': True, 'valueType': 'BOOLEAN'}
@@ -1128,8 +1147,8 @@ class NetAppModule(object):
         response, err, dummy = rest_api.put(base_url, body, header=headers)
         if err is not None:
             return False, "set_config_flag error"
-        else:
-            return True, None
+
+        return True, None
 
     def do_ontap_image_upgrade(self, rest_api, headers, desired):
         # get ONTAP image version

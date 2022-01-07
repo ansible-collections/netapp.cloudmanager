@@ -1,4 +1,4 @@
-# (c) 2021, NetApp, Inc
+# (c) 2022, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 ''' unit tests Cloudmanager Ansible module: '''
@@ -358,6 +358,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_instance_license_type')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
@@ -365,10 +366,10 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
     def test_change_cloudmanager_cvo_gcp(self, get_cvo, get_property, get_details, update_svm_password, update_cvo_tags,
-                                         update_tier_level, get_token):
+                                         update_tier_level, update_instance_license_type, get_token):
         set_module_args(self.set_args_create_cloudmanager_cvo_gcp())
 
-        modify = ['svm_password', 'gcp_labels', 'tier_level']
+        modify = ['svm_password', 'gcp_labels', 'tier_level', 'instance_type']
 
         my_cvo = {
             'name': 'TestA',
@@ -423,12 +424,15 @@ class TestMyModule(unittest.TestCase):
                 update_cvo_tags.return_value = True, None
             elif item == 'tier_level':
                 update_tier_level.return_value = True, None
+            elif item == 'instance_type':
+                update_instance_license_type.return_value = True, None
 
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
         print('Info: test_change_cloudmanager_cvo_gcp: %s' % repr(exc.value))
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_instance_license_type')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_svm_password')
@@ -437,7 +441,7 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
     def test_change_cloudmanager_cvo_gcp_ha(self, get_cvo, get_property, get_details, upgrade_ontap_image, update_svm_password,
-                                            update_cvo_tags, update_tier_level, get_token):
+                                            update_cvo_tags, update_tier_level, update_instance_license_type, get_token):
         data = self.set_args_create_cloudmanager_cvo_gcp()
         data['is_ha'] = True
         data['svm_password'] = 'newpassword'
@@ -455,9 +459,10 @@ class TestMyModule(unittest.TestCase):
         data['platform_serial_number_node1'] = '12345678'
         data['platform_serial_number_node2'] = '23456789'
         data['license_type'] = 'gcp-ha-cot-premium-byol'
+        data['instance_type'] = 'n1-standard-8'
         set_module_args(data)
 
-        modify = ['svm_password', 'gcp_labels', 'tier_level', 'ontap_version']
+        modify = ['svm_password', 'gcp_labels', 'tier_level', 'ontap_version', 'instance_type']
 
         my_cvo = {
             'name': 'TestA',
@@ -518,6 +523,8 @@ class TestMyModule(unittest.TestCase):
                 update_tier_level.return_value = True, None
             elif item == 'ontap_version':
                 upgrade_ontap_image.return_value = True, None
+            elif item == 'instance_type':
+                update_instance_license_type.return_value = True, None
 
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()

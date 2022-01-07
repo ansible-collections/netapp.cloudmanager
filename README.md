@@ -3,7 +3,7 @@
 [![codecov](https://codecov.io/gh/ansible-collections/netapp.cloudmanager/branch/main/graph/badge.svg?token=weBYkksxSi)](https://codecov.io/gh/ansible-collections/netapp.cloudmanager)
 # Ansible Collection - netapp.cloudmanager
 
-Copyright (c) 2021 NetApp, Inc. All rights reserved.
+Copyright (c) 2022 NetApp, Inc. All rights reserved.
 Specifications subject to change without notice.
 
 This collection requires python 3.5 or better.
@@ -47,6 +47,7 @@ https://github.com/ansible-collections/netapp/wiki
   - na_cloudmanager_connector_aws - report client_id if connector already exists.
   - na_cloudmanager_info - new subsets - account_info, agents_info, active_agents_info.
   - Add ONTAP image upgrade feature for AWS, AZURE and GCP CVOs. Add ``upgrade_ontap_version`` to indicate if upgrade ONTAP is needed. It only can be used when ``use_latest_version`` is false and ``ontap_version`` is a specific version.
+  - Add instance_type update feature for AWS, AZURE and GCP CVOs.
 
 ### Bug Fixes
   - na_cloudmanager_cvo_gcp - handle extra auto-gen GCP labels to fix `gcp_labels` update failure.
