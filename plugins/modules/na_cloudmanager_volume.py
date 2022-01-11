@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# (c) 2021, NetApp, Inc
+# (c) 2022, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 '''
@@ -285,6 +285,7 @@ class NetAppCloudmanagerVolume(object):
             required_if=[
                 ['provider_volume_type', 'gp3', ['iops', 'throughput']],
                 ['provider_volume_type', 'io1', ['iops']],
+                ['capacity_tier', 'S3', ['tiering_policy']],
             ],
             supports_check_mode=True
         )
@@ -340,9 +341,6 @@ class NetAppCloudmanagerVolume(object):
                 self.module.fail_json(msg="Error: The following options are not allowed when volume_protocol is iscsi: "
                                           "%s" % extra_options)
 
-        if self.parameters.get('capacity_tier') == 'S3' and not self.parameters.get('tiering_policy'):
-            self.module.fail_json(msg="Error: tiering policy is required when capacity tier is S3")
-
         if self.parameters.get('igroups'):
             current_igroups = []
             for igroup in self.parameters['igroups']:
@@ -382,6 +380,10 @@ class NetAppCloudmanagerVolume(object):
                 target_vol['enable_deduplication'] = volume['deduplication']
                 target_vol['enable_thin_provisioning'] = volume['thinProvisioning']
                 target_vol['enable_compression'] = volume['compression']
+                if self.parameters.get('size'):
+                    target_vol['size'] = volume['size']['size']
+                if self.parameters.get('size_unit'):
+                    target_vol['size_unit'] = volume['size']['unit']
                 if self.parameters.get('export_policy_nfs_version') and volume.get('exportPolicyInfo'):
                     target_vol['export_policy_nfs_version'] = volume['exportPolicyInfo']['nfsVersion']
                 if self.parameters.get('export_policy_ip') and volume.get('exportPolicyInfo'):
@@ -503,6 +505,8 @@ class NetAppCloudmanagerVolume(object):
                 vol['shareInfo']['shareName'] = self.parameters['share_name']
         if modify.get('snapshot_policy_name'):
             vol['snapshotPolicyName'] = self.parameters.get('snapshot_policy_name')
+        if modify.get('tiering_policy'):
+            vol['tieringPolicy'] = self.parameters.get('tiering_policy')
         response, err, dummy = self.rest_api.send_request("PUT", "%s/volumes/%s/%s/%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name'],
             self.parameters['name']), None, vol, header=self.headers)
@@ -602,7 +606,7 @@ class NetAppCloudmanagerVolume(object):
             unmodifiable = []
             for attr in modify:
                 if attr not in ['export_policy_ip', 'export_policy_nfs_version', 'snapshot_policy_name', 'users',
-                                'permission']:
+                                'permission', 'tiering_policy', 'snapshot_policy_name']:
                     unmodifiable.append(attr)
             if len(unmodifiable) > 0:
                 self.module.fail_json(changed=False, msg="%s cannot be modified." % str(unmodifiable))

@@ -1,4 +1,4 @@
-# (c) 2021, NetApp, Inc
+# (c) 2022, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 ''' unit tests Cloudmanager Ansible module: '''
@@ -71,6 +71,7 @@ class TestMyModule(unittest.TestCase):
             'client_id': 'Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh',
             'svm_name': 'svm_justinaws',
             'snapshot_policy_name': 'default',
+            'tiering_policy': 'auto',
             'export_policy_type': 'custom',
             'export_policy_ip': ["10.30.0.1/16"],
             'export_policy_nfs_version': ["nfs4"],
@@ -147,6 +148,7 @@ class TestMyModule(unittest.TestCase):
         get.return_value = {
             'name': 'testvol',
             'snapshot_policy_name': 'default',
+            'tiering_policy': 'snapshot_only',
             'export_policy_type': 'custom',
             'export_policy_ip': ["10.30.0.1/16"],
             'export_policy_nfs_version': ["nfs3", "nfs4"],

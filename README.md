@@ -48,6 +48,7 @@ https://github.com/ansible-collections/netapp/wiki
   - na_cloudmanager_info - new subsets - account_info, agents_info, active_agents_info.
   - Add ONTAP image upgrade feature for AWS, AZURE and GCP CVOs. Add ``upgrade_ontap_version`` to indicate if upgrade ONTAP is needed. It only can be used when ``use_latest_version`` is false and ``ontap_version`` is a specific version.
   - Add instance_type update feature for AWS, AZURE and GCP CVOs.
+  - na_cloudmanager_volume - Add ``tiering_policy`` and ``snapshot_policy_name`` modification, and report error if the properties cannot be changed.
 
 ### Bug Fixes
   - na_cloudmanager_cvo_gcp - handle extra auto-gen GCP labels to fix `gcp_labels` update failure.
