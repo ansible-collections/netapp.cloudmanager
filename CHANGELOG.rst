@@ -5,6 +5,33 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.13.0
+========
+
+Minor Changes
+-------------
+
+- Add ``update_svm_password`` for ``svm_password`` update on AWS, AZURE and GCP CVOs. Update ``svm_password`` if ``update_svm_password`` is true.
+- Add ontap image upgrade on AWS, AZURE and GCP CVOs if ``upgrade_ontap_version`` is true and ``ontap_version`` is provided with a specific version. ``use_latest_version`` has to be false.
+- na_cloudmanager_connector_aws - automatically fetch client_id and instance_id for delete.
+- na_cloudmanager_connector_aws - make the module idempotent for create and delete.
+- na_cloudmanager_connector_aws - report client_id and instance_id if connector already exists.
+- na_cloudmanager_cvo_aws - Support instance_type update
+- na_cloudmanager_cvo_azure - Support instance_type update
+- na_cloudmanager_cvo_gcp - Support instance_type update
+- na_cloudmanager_info - new subsets - account_info, agents_info, active_agents_info
+- na_cloudmanager_volume - Report error if the volume properties cannot be modified. Add support ``tiering_policy`` and ``snapshot_policy_name`` modification.
+
+Bugfixes
+--------
+
+- na_cloudmanager_cvo_gcp - handle extra two auto-gen GCP labels to prevent update ``gcp_labels`` failure.
+
+New Modules
+-----------
+
+- netapp.cloudmanager.na_cloudmanager_aws_fsx - Cloud ONTAP file system(FSX) in AWS
+
 v21.12.1
 ========
 
