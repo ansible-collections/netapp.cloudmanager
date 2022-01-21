@@ -42,7 +42,7 @@ try:
 except ImportError:
     ansible_version = 'unknown'
 
-COLLECTION_VERSION = "21.13.0"
+COLLECTION_VERSION = "21.14.0"
 PROD_ENVIRONMENT = {
     'CLOUD_MANAGER_HOST': 'cloudmanager.cloud.netapp.com',
     'AUTH0_DOMAIN': 'netapp-cloud-account.auth0.com',
@@ -154,7 +154,7 @@ class CloudManagerRestAPI(object):
         if not HAS_REQUESTS:
             self.module.fail_json(msg=missing_required_lib('requests'))
 
-    def format_cliend_id(self, client_id):
+    def format_client_id(self, client_id):
         return client_id if client_id.endswith('clients') else client_id + 'clients'
 
     def build_url(self, api):
@@ -296,7 +296,7 @@ class CloudManagerRestAPI(object):
 
     def check_task_status(self, api_url):
         headers = {
-            'X-Agent-Id': self.format_cliend_id(self.module.params['client_id'])
+            'X-Agent-Id': self.format_client_id(self.module.params['client_id'])
         }
 
         network_retries = 3

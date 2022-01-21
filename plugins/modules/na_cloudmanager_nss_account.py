@@ -121,7 +121,7 @@ class NetAppCloudmanagerNssAccount(object):
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = '/occm/api/'
         self.headers = {
-            'X-Agent-Id': self.rest_api.format_cliend_id(self.parameters['client_id'])
+            'X-Agent-Id': self.rest_api.format_client_id(self.parameters['client_id'])
         }
 
     def get_nss_account(self):

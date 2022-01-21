@@ -527,7 +527,7 @@ class NetAppCloudManagerConnectorAzure(object):
             # Taking too long for terminating OCCM
             return self.module.fail_json(msg="Taking too long for instance to finish terminating")
 
-        client = self.rest_api.format_cliend_id(self.parameters['client_id'])
+        client = self.rest_api.format_client_id(self.parameters['client_id'])
         delete_occum_url = "%s/agents-mgmt/agent/%s" % client
         headers = {
             "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,

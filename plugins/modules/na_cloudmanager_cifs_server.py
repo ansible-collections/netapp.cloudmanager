@@ -182,7 +182,7 @@ class NetAppCloudmanagerCifsServer:
         self.rest_api.token_type, self.rest_api.token = self.rest_api.get_token()
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.headers = {
-            'X-Agent-Id': self.rest_api.format_cliend_id(self.parameters['client_id'])
+            'X-Agent-Id': self.rest_api.format_client_id(self.parameters['client_id'])
         }
         if self.parameters.get('working_environment_id'):
             working_environment_detail, error = self.na_helper.get_working_environment_details(self.rest_api, self.headers)

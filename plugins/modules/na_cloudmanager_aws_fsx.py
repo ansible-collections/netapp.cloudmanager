@@ -232,6 +232,11 @@ class NetAppCloudManagerAWSFSX:
         self.parameters = self.na_helper.set_parameters(self.module.params)
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
+        self.headers = None
+        if self.rest_api.simulator:
+            self.headers = {
+                'x-simulator': 'true'
+            }
 
     def get_aws_credentials_id(self):
         """
@@ -240,7 +245,7 @@ class NetAppCloudManagerAWSFSX:
         """
         api = "/fsx-ontap/aws-credentials/"
         api += self.parameters['tenant_id']
-        response, error, dummy = self.rest_api.get(api, None)
+        response, error, dummy = self.rest_api.get(api, None, header=self.headers)
         if error:
             return response, "Error: getting aws_credentials_id %s" % error
         for each in response:
@@ -295,7 +300,7 @@ class NetAppCloudManagerAWSFSX:
             json.update({"endpointIpAddressRange": self.parameters['endpoint_ip_address_range']})
 
         api_url = '/fsx-ontap/working-environments/%s' % self.parameters['tenant_id']
-        response, error, dummy = self.rest_api.post(api_url, json)
+        response, error, dummy = self.rest_api.post(api_url, json, header=self.headers)
         if error is not None:
             self.module.fail_json(
                 msg="Error: unexpected response on creating aws fsx: %s, %s" % (str(error), str(response)))
@@ -330,7 +335,7 @@ class NetAppCloudManagerAWSFSX:
         network_retries = 3
         exponential_retry_time = 1
         while True:
-            result, error, dummy = self.rest_api.get(api_url, None)
+            result, error, dummy = self.rest_api.get(api_url, None, header=self.headers)
             if error is not None:
                 if network_retries > 0:
                     time.sleep(exponential_retry_time)
@@ -348,7 +353,7 @@ class NetAppCloudManagerAWSFSX:
         Delete AWS FSX
         """
         api_url = '/fsx-ontap/working-environments/%s/%s' % (tenant_id, id)
-        response, error, dummy = self.rest_api.delete(api_url, None)
+        response, error, dummy = self.rest_api.delete(api_url, None, header=self.headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on deleting aws fsx: %s, %s" % (str(error), str(response)))
 
@@ -358,7 +363,7 @@ class NetAppCloudManagerAWSFSX:
         :return: None
         """
         working_environment_id = None
-        current, error = self.na_helper.get_aws_fsx_details(self.rest_api)
+        current, error = self.na_helper.get_aws_fsx_details(self.rest_api, header=self.headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on fetching aws fsx: %s" % str(error))
         cd_action = self.na_helper.get_cd_action(current, self.parameters)

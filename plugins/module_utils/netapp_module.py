@@ -194,7 +194,7 @@ class NetAppModule(object):
             return None, "Error: get_working_environment_details %s" % error
         return response, None
 
-    def get_aws_fsx_details(self, rest_api, header):
+    def get_aws_fsx_details(self, rest_api, header=None):
         '''
         Use working environment id and tenantID to get working environment details including:
         name: working environment name,
@@ -552,7 +552,7 @@ class NetAppModule(object):
         Fetch OCCM agent given its client id
         :return: agent details, error
         """
-        api = "/agents-mgmt/agent/" + rest_api.format_cliend_id(client_id)
+        api = "/agents-mgmt/agent/" + rest_api.format_client_id(client_id)
         headers = {
             "X-User-Token": rest_api.token_type + " " + rest_api.token,
         }
@@ -570,7 +570,7 @@ class NetAppModule(object):
         DEPRECATED - use get_occm_agent_by_id but the retrun value format is different!
         """
 
-        api = "/agents-mgmt/agent/" + rest_api.format_cliend_id(client_id)
+        api = "/agents-mgmt/agent/" + rest_api.format_client_id(client_id)
         headers = {
             "X-User-Token": rest_api.token_type + " " + rest_api.token,
         }
@@ -615,7 +615,7 @@ class NetAppModule(object):
         '''
         delete occm
         '''
-        api = '/agents-mgmt/agent/' + rest_api.format_cliend_id(client_id)
+        api = '/agents-mgmt/agent/' + rest_api.format_client_id(client_id)
         headers = {
             "X-User-Token": rest_api.token_type + " " + rest_api.token,
             "X-Tenancy-Account-Id": self.parameters['account_id'],
@@ -1016,13 +1016,11 @@ class NetAppModule(object):
             modified = ['svm_password']
         # Get current working environment property
         properties = ['ontapClusterProperties.fields(upgradeVersions)']
-        # instanceType in aws case is stored in clusterProperties
+        # instanceType in aws case is stored in awsProperties['instances'][0]['instanceType']
         if provider == 'aws':
-            properties.append('clusterProperties')
-            instance_type_container = 'clusterProperties'
+            properties.append('awsProperties')
         else:
             properties.append('providerProperties')
-            instance_type_container = 'providerProperties'
 
         we, err = self.get_working_environment_property(rest_api, headers, properties)
 
@@ -1035,7 +1033,12 @@ class NetAppModule(object):
         elif tier_level != desired['tier_level']:
             modified.append('tier_level')
 
-        if we[instance_type_container]['instanceType'] != desired['instance_type']:
+        if provider == 'aws':
+            current_instance_type = we['awsProperties']['instances'][0]['instanceType']
+        else:
+            current_instance_type = we['providerProperties']['instanceType']
+
+        if current_instance_type != desired['instance_type']:
             modified.append('instance_type')
 
         if desired['upgrade_ontap_version'] is True:
@@ -1047,7 +1050,7 @@ class NetAppModule(object):
                     available_versions = []
                     for image_info in we['ontapClusterProperties']['upgradeVersions']:
                         available_versions.append(image_info['imageVersion'])
-                        # AWS ontap_version format: ONTAP-x.x.x.Tx pattern
+                        # AWS ontap_version format: ONTAP-x.x.x.Tx or ONTAP-x.x.x.Tx.ha for Ha
                         # AZURE ontap_version format: ONTAP-x.x.x.Tx.azure or .azureha for HA
                         # GCP ontap_version format: ONTAP-x.x.x.Tx.gcp or .gcpha for HA
                         # Tx is not relevant for ONTAP version. But it is needed for the CVO creation
@@ -1098,6 +1101,21 @@ class NetAppModule(object):
 
         return modify, None
 
+    def wait_cvo_update_complete(self, rest_api, headers):
+        retry_count = 65
+        if self.parameters['is_ha'] is True:
+            retry_count *= 2
+        for count in range(retry_count):
+            # get CVO status
+            we, err = self.get_working_environment_property(rest_api, headers, ['status'])
+            if err is not None:
+                return False, 'Error: get_working_environment_property failed: %s' % (str(err))
+            if we['status']['status'] != "UPDATING":
+                return True, None
+            time.sleep(60)
+
+        return False, 'Error: Taking too long for CVO to be active after update or not properly setup'
+
     def update_cvo_tags(self, api_root, rest_api, headers, tag_name, tag_list):
         body = {}
         tags = []
@@ -1138,7 +1156,10 @@ class NetAppModule(object):
         response, err, dummy = rest_api.put(api_root + "license-instance-type", body, header=headers)
         if err is not None:
             return False, 'Error: unexpected response on modify instance_type and instance_type: %s, %s' % (str(err), str(response))
-
+        # check upgrade status
+        dummy, err = self.wait_cvo_update_complete(rest_api, headers)
+        if err is not None:
+            return False, err
         return True, None
 
     def set_config_flag(self, rest_api, headers):

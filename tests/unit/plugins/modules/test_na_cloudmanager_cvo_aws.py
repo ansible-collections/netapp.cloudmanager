@@ -334,7 +334,7 @@ class TestMyModule(unittest.TestCase):
         data = self.set_default_args_pass_check()
         data['svm_password'] = 'newpassword'
         data['update_svm_password'] = True
-        data['ontap_version'] = 'ONTAP-9.10.1P3.T1.azure'
+        data['ontap_version'] = 'ONTAP-9.10.1P3.T1'
         data['upgrade_ontap_version'] = True
         set_module_args(data)
 
@@ -362,11 +362,20 @@ class TestMyModule(unittest.TestCase):
                                                  'imageVersion': 'ONTAP-9.10.1P3',
                                                  'lastModified': 1634467078000}],
                             'writingSpeedState': 'NORMAL'},
-                        'clusterProperties': {
-                            'instanceType': 'm5.xlarge',
-                            'licenseExpiryDate': 0,
-                            'licenseType': {'capacityLimit': {'size': 2.0, 'unit': 'TB'},
-                                            'name': 'Cloud Volumes ONTAP Explore'}, }
+                        'awsProperties': {'accountId': u'123456789011',
+                                          'availabilityZones': [u'us-east-1b'],
+                                          'bootDiskSize': None,
+                                          'cloudProviderAccountId': None,
+                                          'coreDiskExists': True,
+                                          'instances': [{'availabilityZone': 'us-east-1b',
+                                                         'id': 'i-31',
+                                                         'imageId': 'ami-01a6f1234cb1ec375',
+                                                         'instanceProfileId': 'SimFabricPoolInstanceProfileId',
+                                                         'instanceType': 'm5.2xlarge',
+                                                         'isOCCMInstance': False,
+                                                         'isVsaInstance': True,
+                                                         }]
+                                          }
                         }
         get_property.return_value = cvo_property, None
         cvo_details = {'cloudProviderName': 'Amazon',

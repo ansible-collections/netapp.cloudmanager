@@ -168,7 +168,7 @@ class NetAppCloudmanagerInfo(object):
         )
         self.headers = {}
         if 'client_id' in self.parameters:
-            self.headers['X-Agent-Id'] = self.rest_api.format_cliend_id(self.parameters['client_id'])
+            self.headers['X-Agent-Id'] = self.rest_api.format_client_id(self.parameters['client_id'])
 
     def get_aggregates_info(self, rest_api, headers):
         '''
