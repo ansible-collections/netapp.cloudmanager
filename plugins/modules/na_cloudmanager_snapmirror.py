@@ -116,6 +116,12 @@ options:
     type: str
     choices: ['S3', 'Blob', 'cloudStorage', 'NONE']
 
+  tenant_id:
+    description:
+    - The NetApp account ID that the Connector will be associated with. To be used only when using FSx.
+    type: str
+    version_added: 21.14.0
+
   client_id:
     description:
     - The client ID of the Cloud Manager Connector.
@@ -186,6 +192,7 @@ class NetAppCloudmanagerSnapmirror:
             destination_volume_name=dict(required=True, type='str'),
             capacity_tier=dict(required=False, type='str', choices=['NONE', 'S3', 'Blob', 'cloudStorage']),
             provider_volume_type=dict(required=False, type='str'),
+            tenant_id=dict(required=False, type='str'),
             client_id=dict(required=True, type='str'),
         ))
         self.module = AnsibleModule(
@@ -211,6 +218,8 @@ class NetAppCloudmanagerSnapmirror:
         self.headers = {
             'X-Agent-Id': self.rest_api.format_client_id(self.parameters['client_id'])
         }
+        if self.rest_api.simulator:
+            self.headers.update({'x-simulator': 'true'})
 
     def get_snapmirror(self):
         source_we_info, dest_we_info, err = self.na_helper.get_working_environment_detail_for_snapmirror(self.rest_api, self.headers)
@@ -231,12 +240,14 @@ class NetAppCloudmanagerSnapmirror:
 
         if not sm_found:
             return None
-        return {
+        result = {
             'source_working_environment_id': source_we_info['publicId'],
-            'destination_working_environment_id': dest_we_info['publicId'],
             'destination_svm_name': snapmirror['destination']['svmName'],
-            'cloud_provider_name': dest_we_info['cloudProviderName'],
+            'destination_working_environment_id': dest_we_info['publicId'],
         }
+        if not dest_we_info['publicId'].startswith('fs-'):
+            result['cloud_provider_name'] = dest_we_info['cloudProviderName']
+        return result
 
     def create_snapmirror(self):
         snapmirror_build_data = {}
@@ -266,7 +277,6 @@ class NetAppCloudmanagerSnapmirror:
         vol_dest_quote = {}
         source_volume_resp = {}
         for vol in source_volumes:
-            # self.module.fail_json(changed=False, msg=source_we_info)
             if vol['name'] == self.parameters['source_volume_name']:
                 vol_found = True
                 vol_dest_quote = vol
@@ -294,7 +304,8 @@ class NetAppCloudmanagerSnapmirror:
                     self.module.fail_json(changed=False, msg='Error getting destination info %s: %s.' % (err, dest_working_env_detail))
                 self.parameters['destination_svm_name'] = dest_working_env_detail['svmName']
 
-        if dest_we_info['workingEnvironmentType'] != 'ON_PREM':
+        if dest_we_info.get('workingEnvironmentType') and dest_we_info['workingEnvironmentType'] != 'ON_PREM'\
+                and not dest_we_info['publicId'].startswith('fs-'):
             quote = self.build_quote_request(source_we_info, dest_we_info, vol_dest_quote)
             quote_response = self.quote_volume(quote)
             replication_volume['numOfDisksApprovedToAdd'] = int(quote_response['numOfDisks'])
@@ -313,7 +324,10 @@ class NetAppCloudmanagerSnapmirror:
         if self.parameters.get('capacity_tier') is not None:
             replication_volume['destinationCapacityTier'] = self.parameters['capacity_tier']
         replication_request['sourceWorkingEnvironmentId'] = source_we_info['publicId']
-        replication_request['destinationWorkingEnvironmentId'] = dest_we_info['publicId']
+        if dest_we_info['publicId'].startswith('fs-'):
+            replication_request['destinationFsxId'] = dest_we_info['publicId']
+        else:
+            replication_request['destinationWorkingEnvironmentId'] = dest_we_info['publicId']
         replication_volume['sourceVolumeName'] = self.parameters['source_volume_name']
         replication_volume['destinationVolumeName'] = self.parameters['destination_volume_name']
         replication_request['policyName'] = self.parameters['policy']
@@ -327,7 +341,9 @@ class NetAppCloudmanagerSnapmirror:
         snapmirror_build_data['replicationRequest'] = replication_request
         snapmirror_build_data['replicationVolume'] = replication_volume
 
-        if dest_we_info['workingEnvironmentType'] != 'ON_PREM':
+        if dest_we_info['publicId'].startswith('fs-'):
+            api = '/occm/api/replication/fsx'
+        elif dest_we_info['workingEnvironmentType'] != 'ON_PREM':
             api = '/occm/api/replication/vsa'
         else:
             api = '/occm/api/replication/onprem'

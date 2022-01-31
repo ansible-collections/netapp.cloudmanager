@@ -38,7 +38,10 @@ https://github.com/ansible-collections/netapp/wiki
 
 ## 21.14.0
 
-## Bug Fixes
+### Minor Changes
+  - na_cloudmanager_snapmirror - add AWS FSx to snapmirror.
+
+### Bug Fixes
   - CVO working environment clusterProperties is deprecated. Make changes accordingly. Add CVO update status check on `instance_type` change.
 
 ## 21.13.0

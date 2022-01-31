@@ -13,20 +13,20 @@ __metaclass__ = type
 DOCUMENTATION = '''
 
 module: na_cloudmanager_aws_fsx
-short_description: Cloud ONTAP file system(FSX) in AWS
+short_description: Cloud ONTAP file system(FSx) in AWS
 extends_documentation_fragment:
   - netapp.cloudmanager.netapp.cloudmanager
 version_added: '21.13.0'
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 
 description:
-- Create or delete CVO/Working Environment for AWS FSX.
+- Create or delete CVO/Working Environment for AWS FSx.
 
 options:
 
   state:
     description:
-      - Whether the specified FSX in AWS should exist or not.
+      - Whether the specified FSx in AWS should exist or not.
     choices: ['present', 'absent']
     default: 'present'
     type: str
@@ -34,7 +34,7 @@ options:
   name:
     required: true
     description:
-      - The name of the CVO/Working Environment for AWS FSX to manage.
+      - The name of the CVO/Working Environment for AWS FSx to manage.
     type: str
 
   region:
@@ -60,7 +60,7 @@ options:
 
   working_environment_id:
     description:
-      - The ID of the AWS FSX working environment used for delete.
+      - The ID of the AWS FSx working environment used for delete.
     type: str
 
   storage_capacity_size:
@@ -100,7 +100,7 @@ options:
 
   tags:
     description:
-      - Additional tags for the FSX AWS working environment.
+      - Additional tags for the FSx AWS working environment.
     type: list
     elements: dict
     suboptions:
@@ -142,7 +142,7 @@ notes:
 '''
 
 EXAMPLES = """
-- name: Create NetApp AWS FSX
+- name: Create NetApp AWS FSx
   netapp.cloudmanager.na_cloudmanager_aws_fsx:
     state: present
     refresh_token: "{{ xxxxxxxxxxxxxxx }}"
@@ -161,7 +161,7 @@ EXAMPLES = """
       {tag_key: abcd,
       tag_value: ABCD}]
 
-- name: Delete NetApp AWS FSX
+- name: Delete NetApp AWS FSx
   netapp.cloudmanager.na_cloudmanager_aws_fsx:
     state: absent
     refresh_token: "{{ xxxxxxxxxxxxxxx }}"
@@ -172,7 +172,7 @@ EXAMPLES = """
 
 RETURN = '''
 working_environment_id:
-  description: Newly created AWS FSX working_environment_id.
+  description: Newly created AWS FSx working_environment_id.
   type: str
   returned: success
 '''
@@ -254,7 +254,7 @@ class NetAppCloudManagerAWSFSX:
         return None, "Error: aws_credentials_name not found"
 
     def create_aws_fsx(self):
-        """ Create AWS FSX """
+        """ Create AWS FSx """
 
         aws_credentials_id, error = self.get_aws_credentials_id()
         if error is not None:
@@ -303,7 +303,7 @@ class NetAppCloudManagerAWSFSX:
         response, error, dummy = self.rest_api.post(api_url, json, header=self.headers)
         if error is not None:
             self.module.fail_json(
-                msg="Error: unexpected response on creating aws fsx: %s, %s" % (str(error), str(response)))
+                msg="Error: unexpected response on creating AWS FSx: %s, %s" % (str(error), str(response)))
         working_environment_id = response['id']
         creation_wait_time = 30
         creation_retry_count = 30
@@ -350,22 +350,22 @@ class NetAppCloudManagerAWSFSX:
 
     def delete_aws_fsx(self, id, tenant_id):
         """
-        Delete AWS FSX
+        Delete AWS FSx
         """
         api_url = '/fsx-ontap/working-environments/%s/%s' % (tenant_id, id)
         response, error, dummy = self.rest_api.delete(api_url, None, header=self.headers)
         if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on deleting aws fsx: %s, %s" % (str(error), str(response)))
+            self.module.fail_json(msg="Error: unexpected response on deleting AWS FSx: %s, %s" % (str(error), str(response)))
 
     def apply(self):
         """
-        Apply action to the FSX AWS working Environment
+        Apply action to the AWS FSx working Environment
         :return: None
         """
         working_environment_id = None
         current, error = self.na_helper.get_aws_fsx_details(self.rest_api, header=self.headers)
         if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on fetching aws fsx: %s" % str(error))
+            self.module.fail_json(msg="Error: unexpected response on fetching AWS FSx: %s" % str(error))
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
 
         if self.na_helper.changed and not self.module.check_mode:
@@ -379,7 +379,7 @@ class NetAppCloudManagerAWSFSX:
 
 def main():
     """
-    Create AWS FSX class instance and invoke apply
+    Create AWS FSx class instance and invoke apply
     :return: None
     """
     obj_store = NetAppCloudManagerAWSFSX()
