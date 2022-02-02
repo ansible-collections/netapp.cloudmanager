@@ -116,6 +116,17 @@ releases:
       name: na_cloudmanager_aws_fsx
       namespace: ''
     release_date: '2022-01-12'
+  21.14.0:
+    changes:
+      bugfixes:
+      - CVO working environment clusterProperties is deprecated. Make changes accordingly.
+        Add CVO update status check on ``instance_type`` change.
+      minor_changes:
+      - na_cloudmanager_snapmirror - Add FSX to snapmirror.
+    fragments:
+    - DEVOPS-4516.yaml
+    - DEVOPS-4563.yaml
+    release_date: '2022-02-02'
   21.3.0:
     modules:
     - description: NetApp Cloud Manager Aggregate

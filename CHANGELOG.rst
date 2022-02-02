@@ -5,6 +5,19 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.14.0
+========
+
+Minor Changes
+-------------
+
+- na_cloudmanager_snapmirror - Add FSX to snapmirror.
+
+Bugfixes
+--------
+
+- CVO working environment clusterProperties is deprecated. Make changes accordingly. Add CVO update status check on ``instance_type`` change.
+
 v21.13.0
 ========
 
