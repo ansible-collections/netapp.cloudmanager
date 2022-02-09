@@ -155,7 +155,7 @@ options:
   client_id:
     required: true
     description:
-    - The client ID of the Cloud Manager Connector.
+    - The connector ID of the Cloud Manager Connector.
     - You can find the ID from the Connector tab on [https://cloudmanager.netapp.com].
     type: str
 

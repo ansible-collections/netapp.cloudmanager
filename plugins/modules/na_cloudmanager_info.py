@@ -27,7 +27,7 @@ options:
     required: true
     type: str
     description:
-      - The client ID of the Cloud Manager Connector.
+      - The connector ID of the Cloud Manager Connector.
 
   gather_subsets:
     type: list

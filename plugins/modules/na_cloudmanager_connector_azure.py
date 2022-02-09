@@ -71,6 +71,7 @@ options:
   client_id:
     description:
     - The unique client ID of the Connector.
+    - The connector ID.
     type: str
 
   subscription_id:

@@ -33,7 +33,7 @@ options:
 
     client_id:
         description:
-        - The client ID of the Cloud Manager Connector.
+        - The connector ID of the Cloud Manager Connector.
         required: true
         type: str
 

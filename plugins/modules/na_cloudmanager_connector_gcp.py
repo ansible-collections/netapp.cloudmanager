@@ -130,6 +130,7 @@ options:
   client_id:
     description:
     - The client ID of the Cloud Manager Connector.
+    - The connector ID.
     - If state is absent, the client id is used to identify the agent and delete it.
     - If state is absent and this parameter is not set, all agents associated with C(name) are deleted.
     - Ignored when state is present.
