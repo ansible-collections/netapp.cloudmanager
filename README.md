@@ -40,6 +40,7 @@ https://github.com/ansible-collections/netapp/wiki
 
 ### Minor Changes
   - Add the description of the client_id based on the cloudmanager UI.
+  - Update ``license_type`` and ``capacity_package_name`` default values on capacity based license.
  
 ## 21.14.0
 

@@ -117,6 +117,24 @@ class TestMyModule(unittest.TestCase):
             'is_ha': False
         })
 
+    def set_args_create_bynode_cloudmanager_cvo_azure(self):
+        return dict({
+            'state': 'present',
+            'name': 'Dummyname',
+            'client_id': 'test',
+            'location': 'westus',
+            'vnet_id': 'vpc-test',
+            'resource_group': 'test',
+            'subscription_id': 'test',
+            'cidr': '10.0.0.0/24',
+            'subnet_id': 'subnet-test',
+            'svm_password': 'password',
+            'refresh_token': 'myrefresh_token',
+            'license_type': 'azure-cot-premium-byol',
+            'serial_number': '12345678',
+            'is_ha': False
+        })
+
     def test_module_fail_when_required_args_missing(self):
         ''' required arguments are reported as errors '''
         with pytest.raises(AnsibleFailJson) as exc:
@@ -225,9 +243,7 @@ class TestMyModule(unittest.TestCase):
     def test_create_cloudmanager_cvo_azure_nodebase_license_pass(self, get_post_api,
                                                                  get_working_environment_details_by_name, get_nss,
                                                                  get_tenant, wait_on_completion, get_token):
-        data = self.set_args_create_cloudmanager_cvo_azure()
-        data['license_type'] = 'azure-cot-premium-byol'
-        data['serial_number'] = '12345678'
+        data = self.set_args_create_bynode_cloudmanager_cvo_azure()
         set_module_args(data)
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
@@ -253,7 +269,7 @@ class TestMyModule(unittest.TestCase):
     def test_create_cloudmanager_cvo_azure_ha_nodebase_license_pass(self, get_post_api,
                                                                     get_working_environment_details_by_name, get_nss,
                                                                     get_tenant, wait_on_completion, get_token):
-        data = self.set_args_create_cloudmanager_cvo_azure()
+        data = self.set_args_create_bynode_cloudmanager_cvo_azure()
         data['is_ha'] = True
         data['license_type'] = 'azure-ha-cot-premium-byol'
         data['platform_serial_number_node1'] = '12345678'
@@ -284,6 +300,8 @@ class TestMyModule(unittest.TestCase):
                                                    get_tenant, wait_on_completion, get_token):
         data = self.set_args_create_cloudmanager_cvo_azure()
         data['is_ha'] = True
+        data['license_type'] = 'ha-capacity-paygo'
+        data['capacity_package_name'] = 'Essential'
         set_module_args(data)
         get_token.return_value = 'test', 'test'
         my_obj = my_module()

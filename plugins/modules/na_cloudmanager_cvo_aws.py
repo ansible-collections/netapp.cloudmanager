@@ -50,16 +50,16 @@ options:
   license_type:
     description:
     - The type of license to use.
-    - For single node ['cot-explore-paygo','cot-standard-paygo', 'cot-premium-paygo', 'cot-premium-byol', \
-     'capacity-paygo'].
-    - For HA ['ha-cot-explore-paygo','ha-cot-standard-paygo','ha-cot-premium-paygo','ha-cot-premium-byol', \
-     'ha-capacity-paygo'].
-    - Use capacity-paygo or ha-capacity-paygo for HA on selecting Bring Your Own License type Capacity-Based or Freemium.
-    - Use cot-premium-boyl or ha-cot-permium-boyl for HA on selecting Bring Your Own License type Node-Based.
-    choices: ['cot-standard-paygo', 'cot-premium-paygo', 'cot-explore-paygo', 'cot-premium-byol', \
-     'ha-cot-standard-paygo', 'ha-cot-premium-paygo', 'ha-cot-premium-byol', 'ha-cot-explore-paygo', 'capacity-paygo', \
+    - For single node ['capacity-paygo', 'cot-explore-paygo', 'cot-standard-paygo', 'cot-premium-paygo', \
+      'cot-premium-byol'].
+    - For HA ['ha-capacity-paygo', 'ha-cot-explore-paygo','ha-cot-standard-paygo','ha-cot-premium-paygo', \
+      'ha-cot-premium-byol'].
+    - Use capacity-paygo for single node, or ha-capacity-paygo for HA on selecting Capacity-Based license.
+    - Use cot-premium-boyl or ha-cot-permium-boyl for HA on selecting type Node-Based.
+    choices: ['capacity-paygo', 'cot-standard-paygo', 'cot-premium-paygo', 'cot-explore-paygo', 'cot-premium-byol', \
+     'ha-cot-standard-paygo', 'ha-cot-premium-paygo', 'ha-cot-premium-byol', 'ha-cot-explore-paygo',  \
      'ha-capacity-paygo']
-    default: cot-standard-paygo
+    default: capacity-paygo
     type: str
 
   provided_license:
@@ -73,6 +73,7 @@ options:
     - Essential only available with Bring Your Own License Capacity-Based.
     - Professional available as an annual contract from AWS marketplace or Bring Your Own License Capacity-Based.
     choices: ['Professional', 'Essential', 'Freemium']
+    default: 'Essential'
     type: str
     version_added: 21.12.0
 
@@ -455,7 +456,7 @@ class NetAppCloudManagerCVOAWS:
             name=dict(required=True, type='str'),
             state=dict(required=False, choices=['present', 'absent'], default='present'),
             instance_type=dict(required=False, type='str', default='m5.2xlarge'),
-            license_type=dict(required=False, type='str', choices=AWS_License_Types, default='cot-standard-paygo'),
+            license_type=dict(required=False, type='str', choices=AWS_License_Types, default='capacity-paygo'),
             workspace_id=dict(required=False, type='str'),
             subnet_id=dict(required=False, type='str'),
             vpc_id=dict(required=False, type='str'),
@@ -468,7 +469,7 @@ class NetAppCloudManagerCVOAWS:
             ontap_version=dict(required=False, type='str', default='latest'),
             use_latest_version=dict(required=False, type='bool', default=True),
             platform_serial_number=dict(required=False, type='str'),
-            capacity_package_name=dict(required=False, type='str', choices=['Professional', 'Essential', 'Freemium']),
+            capacity_package_name=dict(required=False, type='str', choices=['Professional', 'Essential', 'Freemium'], default='Essential'),
             provided_license=dict(required=False, type='str'),
             tier_level=dict(required=False, type='str', choices=['normal', 'ia', 'ia-single', 'intelligent'], default='normal'),
             nss_account=dict(required=False, type='str'),
@@ -771,11 +772,8 @@ class NetAppCloudManagerCVOAWS:
                 self.module.fail_json(msg="both platform_serial_number_node1 and platform_serial_number_node2 parameters are required"
                                           "when having ha type as true and license_type as ha-cot-premium-byol")
 
-        if self.parameters.get('capacity_package_name') is not None:
-            if self.parameters['is_ha'] is True and self.parameters['license_type'] != 'ha-capacity-paygo':
-                self.module.fail_json(msg="license_type value must be ha-capacity-paygo")
-            if self.parameters['is_ha'] is False and self.parameters['license_type'] != 'capacity-paygo':
-                self.module.fail_json(msg="license_type value must be capacity-paygo")
+        if self.parameters['is_ha'] is True and self.parameters['license_type'] == 'capacity-paygo':
+            self.parameters['license_type'] == 'ha-capacity-paygo'
 
     def apply(self):
         """

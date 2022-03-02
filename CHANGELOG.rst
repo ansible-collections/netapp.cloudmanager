@@ -5,6 +5,15 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.15.0
+========
+
+Minor Changes
+-------------
+
+- Add the description of client_id based on the cloudmanager UI.
+- Set license_type default value 'capacity-paygo' for single node 'ha-capacity-paygo' for HA and 'capacity_package_name' value 'Essential'
+
 v21.14.0
 ========
 

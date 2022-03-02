@@ -71,7 +71,6 @@ class TestMyModule(unittest.TestCase):
             'vpc_id': 'vpc-test',
             'subnet_id': 'subnet-test',
             'svm_password': 'password',
-            'license_type': 'cot-explore-paygo',
             'instance_type': 'm5.xlarge',
             'refresh_token': 'myrefresh_token',
             'is_ha': False
@@ -100,6 +99,21 @@ class TestMyModule(unittest.TestCase):
             'subnet_id': 'subnet-test',
             'svm_password': 'password',
             'refresh_token': 'myrefresh_token',
+            'is_ha': False
+        })
+
+    def set_args_create_bynode_cloudmanager_cvo_aws(self):
+        return dict({
+            'state': 'present',
+            'name': 'Dummyname',
+            'client_id': 'test',
+            'region': 'us-west-1',
+            'vpc_id': 'vpc-test',
+            'subnet_id': 'subnet-test',
+            'svm_password': 'password',
+            'refresh_token': 'myrefresh_token',
+            'license_type': 'cot-premium-byol',
+            'platform_serial_number': '12345678',
             'is_ha': False
         })
 
@@ -157,6 +171,8 @@ class TestMyModule(unittest.TestCase):
                                                  get_tenant, get_vpc, wait_on_completion, get_token):
         data = self.set_args_create_cloudmanager_cvo_aws()
         data['is_ha'] = True
+        data['license_type'] = 'ha-capacity-paygo'
+        data['capacity_package_name'] = 'Essential'
         data.pop('subnet_id')
         set_module_args(data)
         get_token.return_value = 'test', 'test'
@@ -247,9 +263,7 @@ class TestMyModule(unittest.TestCase):
     def test_create_cloudmanager_cvo_aws_nodebase_license_pass(self, get_post_api,
                                                                get_working_environment_details_by_name, get_nss,
                                                                get_tenant, get_vpc, wait_on_completion, get_token):
-        data = self.set_args_create_cloudmanager_cvo_aws()
-        data['license_type'] = 'cot-premium-byol'
-        data['platform_serial_number'] = '12345678'
+        data = self.set_args_create_bynode_cloudmanager_cvo_aws()
         set_module_args(data)
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
@@ -277,7 +291,7 @@ class TestMyModule(unittest.TestCase):
     def test_create_cloudmanager_cvo_aws_ha_nodebase_license_pass(self, get_post_api,
                                                                   get_working_environment_details_by_name, get_nss,
                                                                   get_tenant, get_vpc, wait_on_completion, get_token):
-        data = self.set_args_create_cloudmanager_cvo_aws()
+        data = self.set_args_create_bynode_cloudmanager_cvo_aws()
         data['license_type'] = 'ha-cot-premium-byol'
         data['platform_serial_number_node1'] = '12345678'
         data['platform_serial_number_node2'] = '23456789'
@@ -356,7 +370,7 @@ class TestMyModule(unittest.TestCase):
                         'ontapClusterProperties': {
                             'capacityTierInfo': {'tierLevel': 'normal'},
                             'licenseType': {'capacityLimit': {'size': 2.0, 'unit': 'TB'},
-                                            'name': 'Cloud Volumes ONTAP Explore'},
+                                            'name': 'Cloud Volumes ONTAP Capacity Based Charging'},
                             'ontapVersion': '9.10.0',
                             'upgradeVersions': [{'autoUpdateAllowed': False,
                                                  'imageVersion': 'ONTAP-9.10.1P3',

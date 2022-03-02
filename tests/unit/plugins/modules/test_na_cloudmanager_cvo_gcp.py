@@ -178,6 +178,8 @@ class TestMyModule(unittest.TestCase):
                                                  get_tenant, wait_on_completion, get_token):
         data = self.set_args_create_cloudmanager_cvo_gcp()
         data['is_ha'] = True
+        data['license_type'] = 'ha-capacity-paygo'
+        data['capacity_package_name'] = 'Essential'
         data['subnet0_node_and_data_connectivity'] = 'default'
         data['subnet1_cluster_connectivity'] = 'subnet2'
         data['subnet2_ha_connectivity'] = 'subnet3'

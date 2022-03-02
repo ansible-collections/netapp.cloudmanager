@@ -61,12 +61,12 @@ options:
      'azure-cot-premium-byol', 'capacity-paygo']
     - For HA ['azure-ha-cot-standard-paygo', 'azure-ha-cot-premium-paygo', 'azure-ha-cot-premium-byol', \
      'ha-capacity-paygo']
-    - Use capacity-paygo or ha-capacity-paygo for HA on selecting Bring Your Own License type Capacity-Based or Freemium.
-    - Use azure-cot-premium-boyl or azure-ha-cot-permium-boyl for HA on selecting Bring Your Own License type Node-Based.
+    - Use capacity-paygo for single node or ha-capacity-paygo for HA on selecting type Capacity-Based or Freemium.
+    - Use azure-cot-premium-boyl or azure-ha-cot-permium-boyl for HA on selecting type Node-Based.
     choices: ['azure-cot-standard-paygo', 'azure-cot-premium-paygo', 'azure-cot-premium-byol', \
      'azure-cot-explore-paygo', 'azure-ha-cot-standard-paygo', 'azure-ha-cot-premium-paygo', \
     'azure-ha-cot-premium-byol', 'capacity-paygo', 'ha-capacity-paygo']
-    default: 'azure-cot-standard-paygo'
+    default: 'capacity-paygo'
     type: str
 
   provided_license:
@@ -80,6 +80,7 @@ options:
     - Essential only available with Bring Your Own License Capacity-Based.
     - Professional available as an annual contract from a cloud provider or Bring Your Own License Capacity-Based.
     choices: ['Professional', 'Essential', 'Freemium']
+    default: 'Essential'
     type: str
     version_added: 21.12.0
 
@@ -123,7 +124,7 @@ options:
   cidr:
     required: true
     description:
-    - The CIDR of the VNET.
+    - The CIDR of the VNET. If not provided, resource needs az login to authorize and fetch the cidr details from Azure.
     type: str
 
   location:
@@ -380,9 +381,9 @@ class NetAppCloudManagerCVOAZURE:
             name=dict(required=True, type='str'),
             state=dict(required=False, choices=['present', 'absent'], default='present'),
             instance_type=dict(required=False, type='str', default='Standard_DS4_v2'),
-            license_type=dict(required=False, type='str', choices=AZURE_License_Types, default='azure-cot-standard-paygo'),
+            license_type=dict(required=False, type='str', choices=AZURE_License_Types, default='capacity-paygo'),
             workspace_id=dict(required=False, type='str'),
-            capacity_package_name=dict(required=False, type='str', choices=['Professional', 'Essential', 'Freemium']),
+            capacity_package_name=dict(required=False, type='str', choices=['Professional', 'Essential', 'Freemium'], default='Essential'),
             provided_license=dict(required=False, type='str'),
             subnet_id=dict(required=True, type='str'),
             vnet_id=dict(required=True, type='str'),
@@ -646,12 +647,8 @@ class NetAppCloudManagerCVOAZURE:
             if self.parameters.get('platform_serial_number_node1') is None or self.parameters.get('platform_serial_number_node2') is None:
                 self.module.fail_json(msg="both platform_serial_number_node1 and platform_serial_number_node2 parameters are required"
                                           "when having ha type as true and license_type as azure-ha-cot-premium-byol")
-
-        if self.parameters.get('capacity_package_name') is not None:
-            if self.parameters['is_ha'] is True and self.parameters['license_type'] != 'ha-capacity-paygo':
-                self.module.fail_json(msg="license_type value must be ha-capacity-paygo")
-            if self.parameters['is_ha'] is False and self.parameters['license_type'] != 'capacity-paygo':
-                self.module.fail_json(msg="license_type value must be capacity-paygo")
+        if self.parameters['is_ha'] is True and self.parameters['license_type'] == 'capacity-paygo':
+            self.parameters['license_type'] == 'ha-capacity-paygo'
 
     def apply(self):
         """
