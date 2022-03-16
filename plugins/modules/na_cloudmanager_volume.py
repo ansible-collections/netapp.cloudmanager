@@ -287,6 +287,10 @@ class NetAppCloudmanagerVolume(object):
                 ['provider_volume_type', 'io1', ['iops']],
                 ['capacity_tier', 'S3', ['tiering_policy']],
             ],
+            # enable_thin_provisioning reflects storage efficiency.
+            required_by={
+                'capacity_tier': ('tiering_policy', 'enable_thin_provisioning'),
+            },
             supports_check_mode=True
         )
         self.na_helper = NetAppModule()
@@ -429,6 +433,9 @@ class NetAppCloudmanagerVolume(object):
             quote['aggregateName'] = self.parameters['aggregate_name']
             create_aggregate_if_not_exists = False
 
+        if self.parameters.get('capacity_tier') and self.parameters['capacity_tier'] != "NONE":
+            quote['capacityTier'] = self.parameters['capacity_tier']
+
         if self.parameters['volume_protocol'] == 'nfs':
             quote['exportPolicyInfo'] = dict()
             if self.parameters.get('export_policy_type'):
@@ -523,8 +530,6 @@ class NetAppCloudmanagerVolume(object):
     def get_initiator(self, alias_name):
         response, err, dummy = self.rest_api.send_request("GET", "%s/volumes/initiator" % (
             self.rest_api.api_root_path), None, header=self.headers)
-        # self.log("get_initiator")
-        # self.log(str(response))
         if err is not None:
             self.module.fail_json(changed=False, msg="Error: unexpected response on getting initiator: %s, %s" % (str(err), str(response)))
         result = dict()
@@ -548,8 +553,6 @@ class NetAppCloudmanagerVolume(object):
         response, err, dummy = self.rest_api.send_request("GET", "%s/volumes/igroups/%s/%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name']),
             None, None, header=self.headers)
-        # self.log("get_igroup")
-        # self.log(str(response))
         if err is not None:
             self.module.fail_json(changed=False, msg="Error: unexpected response on getting igroup: %s, %s" % (str(err), str(response)))
         result = dict()

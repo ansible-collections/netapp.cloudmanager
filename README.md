@@ -36,6 +36,11 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.16.0
+
+### Bug Fixes
+  - na_cloudmanager_volume - Add check when volume is capacity tiered.
+
 ## 21.15.0
 
 ### Minor Changes
