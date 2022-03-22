@@ -228,7 +228,6 @@ try:
     from azure.mgmt.network import NetworkManagementClient
     from azure.mgmt.storage import StorageManagementClient
     from azure.mgmt.resource.resources.models import Deployment
-    from azure.mgmt.resource.resources.models import DeploymentProperties
     from azure.common.client_factory import get_client_from_cli_profile
     from msrestazure.azure_exceptions import CloudError
     HAS_AZURE_LIB = True
