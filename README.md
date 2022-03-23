@@ -40,6 +40,7 @@ https://github.com/ansible-collections/netapp/wiki
 
 ### Bug Fixes
   - na_cloudmanager_volume - Add check when volume is capacity tiered.
+  - na_cloudmanager_connector_azure - Fix string formatting error when deleting the connector.
 
 ## 21.15.0
 

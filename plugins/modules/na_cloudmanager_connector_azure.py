@@ -526,17 +526,10 @@ class NetAppCloudManagerConnectorAzure(object):
         if retries == 0:
             # Taking too long for terminating OCCM
             return self.module.fail_json(msg="Taking too long for instance to finish terminating")
-
         client = self.rest_api.format_client_id(self.parameters['client_id'])
-        delete_occum_url = "%s/agents-mgmt/agent/%s" % client
-        headers = {
-            "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
-            "X-Tenancy-Account-Id": self.parameters['account_id']
-        }
-
-        response, error, dummy = self.rest_api.delete(delete_occum_url, None, header=headers)
-        if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on deleting OCCM: %s, %s" % (str(error), str(response)))
+        error = self.na_helper.delete_occm_agents(self.rest_api, [{'agentId': client}])
+        if error:
+            self.module.fail_json(msg="Error: unexpected response on deleting OCCM: %s" % (str(error)))
 
     def apply(self):
         """
