@@ -42,6 +42,9 @@ https://github.com/ansible-collections/netapp/wiki
   - na_cloudmanager_volume - Add check when volume is capacity tiered.
   - na_cloudmanager_connector_azure - Fix string formatting error when deleting the connector.
 
+### Minor Changes
+  - na_cloudmanager_connector_gcp - when using the user application default credential authentication by running the command gcloud auth application-default login, ``gcp_service_account_path`` is not needed.
+
 ## 21.15.0
 
 ### Minor Changes

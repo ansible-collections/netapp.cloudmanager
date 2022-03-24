@@ -23,6 +23,7 @@ IMPORT_ERRORS = []
 HAS_GCP_COLLECTION = False
 
 try:
+    from google import auth
     from google.auth.transport import requests
     from google.oauth2 import service_account
     import yaml
@@ -91,7 +92,6 @@ def set_default_args_pass_check():
         'account_id': 'account-test',
         'company': 'NetApp',
         'service_account_email': 'terraform-user@tlv-support.iam.gserviceaccount.com',
-        'service_account_path': 'test.json',
     })
 
 
@@ -139,7 +139,7 @@ def test_module_fail_when_required_args_present(get_token, get_gcp_token, patch_
     ''' required arguments are reported as errors '''
     with pytest.raises(AnsibleExitJson) as exc:
         set_module_args(set_default_args_pass_check())
-        get_token.return_value = 'test', 'test'
+        get_token.return_value = 'bearer', 'test'
         get_gcp_token.return_value = 'token', None
         my_module()
         exit_json(changed=True, msg="TestCase Fail when required args are present")
@@ -156,7 +156,7 @@ def test_module_fail_when_required_args_present(get_token, get_gcp_token, patch_
 def test_create_cloudmanager_connector_gcp_pass(get_post_api, get_vm, create_occm_gcp, get_custom_data_for_gcp,
                                                 deploy_gcp_vm, get_gcp_token, get_token, patch_ansible):
     set_module_args(set_args_create_cloudmanager_connector_gcp())
-    get_token.return_value = 'test', 'test'
+    get_token.return_value = 'bearer', 'test'
     get_gcp_token.return_value = 'test', None
     my_obj = my_module()
 
@@ -180,7 +180,7 @@ def test_create_cloudmanager_connector_gcp_pass(get_post_api, get_vm, create_occ
 @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.delete')
 def test_delete_cloudmanager_connector_gcp_pass(get_delete_api, get_agents, get_deploy_vm, delete_occm_gcp, get_gcp_token, get_token, patch_ansible):
     set_module_args(set_args_delete_cloudmanager_connector_gcp())
-    get_token.return_value = 'test', 'test'
+    get_token.return_value = 'bearer', 'test'
     get_gcp_token.return_value = 'test', None
     my_obj = my_module()
 

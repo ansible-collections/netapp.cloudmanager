@@ -65,7 +65,6 @@ options:
   gcp_service_account_path:
     description:
     - The local path of the service_account JSON file for GCP authorization purposes. This service account is used to create the Connector in GCP.
-    required: true
     type: str
     aliases: ['service_account_path']
     version_added: 21.7.0
@@ -198,6 +197,7 @@ IMPORT_ERRORS = []
 HAS_GCP_COLLECTION = False
 
 try:
+    import google.auth
     from google.auth.transport import requests
     from google.oauth2 import service_account
     import yaml
@@ -221,7 +221,7 @@ class NetAppCloudManagerConnectorGCP(object):
             zone=dict(required=True, type='str'),
             company=dict(required=True, type='str'),
             gcp_service_account_email=dict(required=True, type='str', aliases=['service_account_email']),
-            gcp_service_account_path=dict(required=True, type='str', aliases=['service_account_path']),
+            gcp_service_account_path=dict(required=False, type='str', aliases=['service_account_path']),
             subnet_id=dict(required=False, type='str', default='default'),
             network_project_id=dict(required=False, type='str'),
             machine_type=dict(required=False, type='str', default='n1-standard-4'),
@@ -256,23 +256,26 @@ class NetAppCloudManagerConnectorGCP(object):
         '''
         get gcp token from gcp service account credential json file
         '''
-        try:
-            fh = open(self.parameters['gcp_service_account_path'])
-        except (OSError, IOError) as error:
-            return None, "opening %s: got: %s" % (self.parameters['gcp_service_account_path'], repr(error))
-        with fh:
-            key_bytes = json.load(fh)
-            if key_bytes is None:
-                return None, "Error: file is empty"
-        credentials = service_account.Credentials.from_service_account_file(
-            self.parameters['gcp_service_account_path'],
-            scopes=["https://www.googleapis.com/auth/cloud-platform",
-                    "https://www.googleapis.com/auth/compute",
-                    "https://www.googleapis.com/auth/compute.readonly",
-                    "https://www.googleapis.com/auth/ndev.cloudman",
-                    "https://www.googleapis.com/auth/ndev.cloudman.readonly",
-                    "https://www.googleapis.com/auth/devstorage.full_control",
-                    "https://www.googleapis.com/auth/devstorage.read_write"])
+        scopes = ["https://www.googleapis.com/auth/cloud-platform",
+                  "https://www.googleapis.com/auth/compute",
+                  "https://www.googleapis.com/auth/compute.readonly",
+                  "https://www.googleapis.com/auth/ndev.cloudman",
+                  "https://www.googleapis.com/auth/ndev.cloudman.readonly",
+                  "https://www.googleapis.com/auth/devstorage.full_control",
+                  "https://www.googleapis.com/auth/devstorage.read_write"]
+        if 'gcp_service_account_path' in self.parameters:
+            try:
+                fh = open(self.parameters['gcp_service_account_path'])
+            except (OSError, IOError) as error:
+                return None, "opening %s: got: %s" % (self.parameters['gcp_service_account_path'], repr(error))
+            with fh:
+                key_bytes = json.load(fh)
+                if key_bytes is None:
+                    return None, "Error: gcp_service_account_path file is empty"
+            credentials = service_account.Credentials.from_service_account_file(self.parameters['gcp_service_account_path'], scopes=scopes)
+        else:
+            credentials, project = google.auth.default(scopes=scopes)
+
         credentials.refresh(requests.Request())
 
         return credentials.token, None
