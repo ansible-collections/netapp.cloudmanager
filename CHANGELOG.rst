@@ -5,6 +5,20 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.16.0
+========
+
+Minor Changes
+-------------
+
+- na_cloudmanager_connector_gcp - when using the user application default credential authentication by running the command gcloud auth application-default login, ``gcp_service_account_path`` is not needed.
+
+Bugfixes
+--------
+
+- Add check when volume is capacity tiered.
+- na_cloudmanager_connector_azure - Fix string formatting error when deleting the connector.
+
 v21.15.0
 ========
 
