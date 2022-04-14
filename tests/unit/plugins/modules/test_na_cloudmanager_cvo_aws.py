@@ -352,7 +352,7 @@ class TestMyModule(unittest.TestCase):
         data['upgrade_ontap_version'] = True
         set_module_args(data)
 
-        modify = ['svm_password', 'aws_tag', 'tier_level', 'ontap_version', 'instance_type']
+        modify = ['svm_password', 'aws_tag', 'tier_level', 'ontap_version', 'instance_type', 'license_type']
 
         my_cvo = {
             'name': 'TestA',
@@ -388,7 +388,8 @@ class TestMyModule(unittest.TestCase):
                                                          'instanceType': 'm5.2xlarge',
                                                          'isOCCMInstance': False,
                                                          'isVsaInstance': True,
-                                                         }]
+                                                         }],
+                                          'regionName': 'us-west-1',
                                           }
                         }
         get_property.return_value = cvo_property, None
@@ -413,7 +414,7 @@ class TestMyModule(unittest.TestCase):
                 update_tier_level.return_value = True, None
             elif item == 'ontap_version':
                 upgrade_ontap_image.return_value = True, None
-            elif item == 'instance_type':
+            elif item == 'instance_type' or item == 'license_type':
                 update_instance_license_type.return_value = True, None
 
         with pytest.raises(AnsibleExitJson) as exc:

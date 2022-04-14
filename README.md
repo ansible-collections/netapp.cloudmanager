@@ -44,6 +44,7 @@ https://github.com/ansible-collections/netapp/wiki
 
 ### Minor Changes
   - na_cloudmanager_connector_gcp - when using the user application default credential authentication by running the command gcloud auth application-default login, ``gcp_service_account_path`` is not needed.
+  - Support ``license_type`` modification for AWS, AZURE and GCP CVOs.
 
 ## 21.15.0
 

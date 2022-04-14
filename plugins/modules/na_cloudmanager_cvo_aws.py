@@ -50,12 +50,12 @@ options:
   license_type:
     description:
     - The type of license to use.
-    - For single node ['capacity-paygo', 'cot-explore-paygo', 'cot-standard-paygo', 'cot-premium-paygo', \
-      'cot-premium-byol'].
-    - For HA ['ha-capacity-paygo', 'ha-cot-explore-paygo','ha-cot-standard-paygo','ha-cot-premium-paygo', \
-      'ha-cot-premium-byol'].
-    - Use capacity-paygo for single node, or ha-capacity-paygo for HA on selecting Capacity-Based license.
-    - Use cot-premium-boyl or ha-cot-permium-boyl for HA on selecting type Node-Based.
+    - For single node by Capacity ['capacity-paygo']
+    - For single node by Node paygo ['cot-explore-paygo', 'cot-standard-paygo', 'cot-premium-paygo'].
+    - For single node by Node boyl ['cot-premium-byol'].
+    - For HA by Capacity ['ha-capacity-paygo']
+    - For HA by Node paygo ['ha-cot-explore-paygo','ha-cot-standard-paygo','ha-cot-premium-paygo'].
+    - For HA by Node boyl ['ha-cot-premium-byol'].
     choices: ['capacity-paygo', 'cot-standard-paygo', 'cot-premium-paygo', 'cot-explore-paygo', 'cot-premium-byol', \
      'ha-cot-standard-paygo', 'ha-cot-premium-paygo', 'ha-cot-premium-byol', 'ha-cot-explore-paygo',  \
      'ha-capacity-paygo']
@@ -516,6 +516,7 @@ class NetAppCloudManagerCVOAWS:
                 ['ebs_volume_type', 'gp3', ['iops', 'throughput']],
                 ['ebs_volume_type', 'io1', ['iops']],
                 ['license_type', 'cot-premium-byol', ['platform_serial_number']],
+                ['license_type', 'ha-cot-premium-byol', ['platform_serial_number_node1', 'platform_serial_number_node2']],
                 ['license_type', 'capacity-paygo', ['capacity_package_name']],
                 ['license_type', 'ha-capacity-paygo', ['capacity_package_name']],
             ],
@@ -531,7 +532,7 @@ class NetAppCloudManagerCVOAWS:
 
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-        self.changeable_params = ['aws_tag', 'svm_password', 'tier_level', 'ontap_version', 'instance_type']
+        self.changeable_params = ['aws_tag', 'svm_password', 'tier_level', 'ontap_version', 'instance_type', 'license_type']
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = '/occm/api/%s' % ('aws/ha' if self.parameters['is_ha'] else 'vsa')
@@ -607,6 +608,10 @@ class NetAppCloudManagerCVOAWS:
         if self.parameters['capacity_tier'] == "S3":
             json.update({"capacityTier": self.parameters['capacity_tier'],
                          "tierLevel": self.parameters['tier_level']})
+
+        # clean default value if it is not by Capacity license
+        if not self.parameters['license_type'].endswith('capacity-paygo'):
+            json['vsaMetadata'].update({"capacityPackageName": ''})
 
         if self.parameters.get('platform_serial_number') is not None:
             json['vsaMetadata'].update({"platformSerialNumber": self.parameters['platform_serial_number']})
@@ -773,7 +778,7 @@ class NetAppCloudManagerCVOAWS:
                                           "when having ha type as true and license_type as ha-cot-premium-byol")
 
         if self.parameters['is_ha'] is True and self.parameters['license_type'] == 'capacity-paygo':
-            self.parameters['license_type'] == 'ha-capacity-paygo'
+            self.parameters['license_type'] = 'ha-capacity-paygo'
 
     def apply(self):
         """

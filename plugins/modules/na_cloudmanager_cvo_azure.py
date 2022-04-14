@@ -10,7 +10,6 @@ na_cloudmanager_cvo_azure
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-
 DOCUMENTATION = '''
 
 module: na_cloudmanager_cvo_azure
@@ -47,9 +46,9 @@ options:
   instance_type:
     description:
     - The type of instance to use, which depends on the license type you chose.
-    - Explore ['Standard_DS3_v2']
-    - Standard ['Standard_DS4_v2, Standard_DS13_v2, Standard_L8s_v2']
-    - Premium ['Standard_DS5_v2', 'Standard_DS14_v2']
+    - Explore ['Standard_DS3_v2'].
+    - Standard ['Standard_DS4_v2, Standard_DS13_v2, Standard_L8s_v2'].
+    - Premium ['Standard_DS5_v2', 'Standard_DS14_v2'].
     - For more supported instance types, refer to Cloud Volumes ONTAP Release Notes.
     type: str
     default: Standard_DS4_v2
@@ -57,15 +56,15 @@ options:
   license_type:
     description:
     - The type of license to use.
-    - For single node ['azure-cot-explore-paygo', 'azure-cot-standard-paygo', 'azure-cot-premium-paygo', \
-     'azure-cot-premium-byol', 'capacity-paygo']
-    - For HA ['azure-ha-cot-standard-paygo', 'azure-ha-cot-premium-paygo', 'azure-ha-cot-premium-byol', \
-     'ha-capacity-paygo']
-    - Use capacity-paygo for single node or ha-capacity-paygo for HA on selecting type Capacity-Based or Freemium.
-    - Use azure-cot-premium-boyl or azure-ha-cot-permium-boyl for HA on selecting type Node-Based.
+    - For single node by Capacity ['capacity-paygo'].
+    - For single node by Node paygo ['azure-cot-explore-paygo', 'azure-cot-standard-paygo', 'azure-cot-premium-paygo'].
+    - For single node by Node byol ['azure-cot-premium-byol'].
+    - For HA by Capacity ['ha-capacity-paygo'].
+    - For HA by Node paygo ['azure-ha-cot-standard-paygo', 'azure-ha-cot-premium-paygo'].
+    - For HA by Node byol ['azure-ha-cot-premium-byol'].
     choices: ['azure-cot-standard-paygo', 'azure-cot-premium-paygo', 'azure-cot-premium-byol', \
      'azure-cot-explore-paygo', 'azure-ha-cot-standard-paygo', 'azure-ha-cot-premium-paygo', \
-    'azure-ha-cot-premium-byol', 'capacity-paygo', 'ha-capacity-paygo']
+     'azure-ha-cot-premium-byol', 'capacity-paygo', 'ha-capacity-paygo']
     default: 'capacity-paygo'
     type: str
 
@@ -117,7 +116,7 @@ options:
 
   allow_deploy_in_existing_rg:
     description:
-    - Indicates if to allow creation in existing resource group
+    - Indicates if to allow creation in existing resource group.
     type: bool
     default: false
 
@@ -189,7 +188,7 @@ options:
 
   ontap_version:
     description:
-    - The required ONTAP version. Ignored if 'use_latest_version' is set to true
+    - The required ONTAP version. Ignored if 'use_latest_version' is set to true.
     type: str
     default: 'latest'
 
@@ -201,8 +200,8 @@ options:
 
   serial_number:
     description:
-    - The serial number for the cluster
-    - Required when using one of these, 'azure-cot-premium-byol' or 'azure-ha-cot-premium-byol'
+    - The serial number for the cluster.
+    - Required when using one of these, 'azure-cot-premium-byol' or 'azure-ha-cot-premium-byol'.
     type: str
 
   tier_level:
@@ -226,7 +225,7 @@ options:
 
   capacity_tier:
     description:
-    - Whether to enable data tiering for the first data aggregate
+    - Whether to enable data tiering for the first data aggregate.
     choices: ['Blob', 'NONE']
     default: 'Blob'
     type: str
@@ -268,7 +267,6 @@ options:
       tag_value:
         description: The tag value.
         type: str
-
   is_ha:
     description:
     - Indicate whether the working environment is an HA pair or not.
@@ -431,13 +429,15 @@ class NetAppCloudManagerCVOAZURE:
             required_if=[
                 ['license_type', 'capacity-paygo', ['capacity_package_name']],
                 ['license_type', 'ha-capacity-paygo', ['capacity_package_name']],
+                ['license_type', 'azure-cot-premium-byol', ['serial_number']],
+                ['license_type', 'azure-ha-cot-premium-byol', ['platform_serial_number_node1', 'platform_serial_number_node2']],
             ],
             supports_check_mode=True
         )
 
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-        self.changeable_params = ['svm_password', 'azure_tag', 'tier_level', 'ontap_version', 'instance_type']
+        self.changeable_params = ['svm_password', 'azure_tag', 'tier_level', 'ontap_version', 'instance_type', 'license_type']
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = '/occm/api/azure/%s' % ('ha' if self.parameters['is_ha'] else 'vsa')
@@ -498,6 +498,10 @@ class NetAppCloudManagerCVOAZURE:
 
         if self.parameters.get('provided_license') is not None:
             json['vsaMetadata'].update({"providedLicense": self.parameters['provided_license']})
+
+        # clean default value if it is not by Capacity license
+        if not self.parameters['license_type'].endswith('capacity-paygo'):
+            json['vsaMetadata'].update({"capacityPackageName": ''})
 
         if self.parameters.get('capacity_package_name') is not None:
             json['vsaMetadata'].update({"capacityPackageName": self.parameters['capacity_package_name']})

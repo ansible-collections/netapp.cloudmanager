@@ -359,7 +359,7 @@ class TestMyModule(unittest.TestCase):
         data['instance_type'] = 'Standard_DS13_v2'
         set_module_args(data)
 
-        modify = ['svm_password', 'azure_tag', 'tier_level', 'ontap_version', 'instance_type']
+        modify = ['svm_password', 'azure_tag', 'tier_level', 'ontap_version', 'instance_type', 'license_type']
 
         my_cvo = {
             'name': 'TestA',

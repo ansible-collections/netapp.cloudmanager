@@ -122,12 +122,12 @@ options:
   license_type:
     description:
     - The type of license to use.
-    - Single node ['capacity-paygo', 'gcp-cot-explore-paygo', 'gcp-cot-standard-paygo', 'gcp-cot-premium-paygo', \
-      'gcp-cot-premium-byol'].
-    - HA ['ha-capacity-paygo', 'gcp-ha-cot-explore-paygo', 'gcp-ha-cot-standard-paygo', 'gcp-ha-cot-premium-paygo', \
-      'gcp-cot-premium-byol'].
-    - Use capacity-paygo or ha-capacity-paygo for HA on selecting type Capacity-Based or Freemium.
-    - Use gcp-cot-premium-boyl or gcp-ha-cot-permium-boyl for HA on selecting type Node-Based.
+    - For single node by Capacity ['capacity-paygo'].
+    - For single node by Node paygo ['gcp-cot-explore-paygo', 'gcp-cot-standard-paygo', 'gcp-cot-premium-paygo'].
+    - For single node by Node byol ['gcp-cot-premium-byol'].
+    - For HA by Capacity ['ha-capacity-paygo'].
+    - For HA by Node paygo ['gcp-ha-cot-explore-paygo', 'gcp-ha-cot-standard-paygo', 'gcp-ha-cot-premium-paygo'].
+    - For HA by Node byol ['gcp-cot-premium-byol'].
     choices: ['gcp-cot-standard-paygo', 'gcp-cot-explore-paygo', 'gcp-cot-premium-paygo', 'gcp-cot-premium-byol', \
      'gcp-ha-cot-standard-paygo', 'gcp-ha-cot-premium-paygo', 'gcp-ha-cot-explore-paygo', 'gcp-ha-cot-premium-byol', \
      'capacity-paygo', 'ha-capacity-paygo']
@@ -521,12 +521,14 @@ class NetAppCloudManagerCVOGCP:
             required_if=[
                 ['license_type', 'capacity-paygo', ['capacity_package_name']],
                 ['license_type', 'ha-capacity-paygo', ['capacity_package_name']],
+                ['license_type', 'gcp-cot-premium-byol', ['platform_serial_number']],
+                ['license_type', 'gcp-ha-cot-premium-byol', ['platform_serial_number_node1', 'platform_serial_number_node2']],
             ],
             supports_check_mode=True
         )
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-        self.changeable_params = ['svm_password', 'tier_level', 'gcp_labels', 'ontap_version', 'instance_type']
+        self.changeable_params = ['svm_password', 'tier_level', 'gcp_labels', 'ontap_version', 'instance_type', 'license_type']
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = '/occm/api/gcp/%s' % ('ha' if self.parameters['is_ha'] else 'vsa')
@@ -590,6 +592,10 @@ class NetAppCloudManagerCVOGCP:
         if self.parameters.get('provided_license') is not None:
             json['vsaMetadata'].update({"providedLicense": self.parameters['provided_license']})
 
+        # clean default value if it is not by Capacity license
+        if not self.parameters['license_type'].endswith('capacity-paygo'):
+            json['vsaMetadata'].update({"capacityPackageName": ''})
+
         if self.parameters.get('capacity_package_name') is not None:
             json['vsaMetadata'].update({"capacityPackageName": self.parameters['capacity_package_name']})
 
@@ -603,7 +609,7 @@ class NetAppCloudManagerCVOGCP:
             json.update({'subnetId': self.parameters['subnet_id']})
 
         if self.parameters.get('platform_serial_number') is not None:
-            json.update({"platformSerialNumber": self.parameters['platform_serial_number']})
+            json.update({"serialNumber": self.parameters['platform_serial_number']})
 
         if self.parameters.get('capacity_tier') is not None and self.parameters['capacity_tier'] == "cloudStorage":
             json.update({"capacityTier": self.parameters['capacity_tier'],

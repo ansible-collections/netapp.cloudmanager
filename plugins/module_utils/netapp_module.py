@@ -1025,7 +1025,7 @@ class NetAppModule(object):
             # no change
             return None, None
 
-    def compare_cvo_tags_labels(self, current_tags, user_tags, tag_name):
+    def compare_cvo_tags_labels(self, current_tags, user_tags):
         '''
         Compare exiting tags/labels and user input tags/labels to see if there is a change
         gcp_labels: label_key, label_value
@@ -1079,7 +1079,39 @@ class NetAppModule(object):
             return True, None
         else:
             # has tags in input parameters and existing CVO
-            return self.compare_cvo_tags_labels(current['userTags'], parameters[tag_name], tag_name)
+            return self.compare_cvo_tags_labels(current['userTags'], parameters[tag_name])
+
+    def get_license_type(self, rest_api, headers, provider, region, instance_type, ontap_version, license_name):
+        # Permutation query example:
+        # aws: /metadata/permutations?region=us-east-1&instance_type=m5.xlarge&version=ONTAP-9.10.1.T1
+        # azure: /metadata/permutations?region=westus&instance_type=Standard_E4s_v3&version=ONTAP-9.10.1.T1.azure
+        # gcp: /metadata/permutations?region=us-east1&instance_type=n2-standard-4&version=ONTAP-9.10.1.T1.gcp
+        # The examples of the ontapVersion in ontapClusterProperties response:
+        # AWS for both single and HA: 9.10.1RC1, 9.8
+        # AZURE single: 9.10.1RC1.T1.azure. For HA: 9.10.1RC1.T1.azureha
+        # GCP for both single and HA: 9.10.1RC1.T1, 9.8.T1
+        # To be used in permutation:
+        # AWS ontap_version format: ONTAP-x.x.x.T1 or ONTAP-x.x.x.T1.ha for Ha
+        # AZURE ontap_version format: ONTAP-x.x.x.T1.azure or ONTAP-x.x.x.T1.azureha for HA
+        # GCP ontap_version format: ONTAP-x.x.x.T1.gcp or ONTAP-x.x.x.T1.gcpha for HA
+        version = 'ONTAP-' + ontap_version
+        if provider == 'aws':
+            version += '.T1.ha' if self.parameters['is_ha'] else '.T1'
+        elif provider == 'gcp':
+            version += '.gcpha' if self.parameters['is_ha'] else '.gcp'
+        api = '%s/metadata/permutations' % rest_api.api_root_path
+        params = {'region': region,
+                  'version': version,
+                  'instance_type': instance_type
+                  }
+        response, error, dummy = rest_api.get(api, params=params, header=headers)
+        if error:
+            return None, "Error: get_license_type %s %s" % (response, error)
+        for item in response:
+            if item['license']['name'] == license_name:
+                return item['license']['type'], None
+
+        return None, "Error: get_license_type cannot get license type %s" % response
 
     def get_modify_cvo_params(self, rest_api, headers, desired, provider):
         modified = []
@@ -1106,11 +1138,22 @@ class NetAppModule(object):
 
         if provider == 'aws':
             current_instance_type = we['awsProperties']['instances'][0]['instanceType']
+            region = we['awsProperties']['regionName']
         else:
             current_instance_type = we['providerProperties']['instanceType']
+            region = we['providerProperties']['regionName']
 
         if current_instance_type != desired['instance_type']:
             modified.append('instance_type')
+
+        # check if license type is changed
+        current_license_type, error = self.get_license_type(rest_api, headers, provider, region, current_instance_type,
+                                                            we['ontapClusterProperties']['ontapVersion'],
+                                                            we['ontapClusterProperties']['licenseType']['name'])
+        if err is not None:
+            return None, error
+        if current_license_type != desired['license_type']:
+            modified.append('license_type')
 
         if desired['upgrade_ontap_version'] is True:
             if desired['use_latest_version'] or desired['ontap_version'] == 'latest':
