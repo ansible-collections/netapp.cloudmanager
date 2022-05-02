@@ -160,6 +160,13 @@ options:
     - The password for the Connector.
     type: str
 
+  storage_account:
+    description:
+    - The storage account can be created automatically.
+    - When C(storage_account) is not set, the name is constructed by appending 'sa' to the connector C(name).
+    - Storage account name must be between 3 and 24 characters in length and use numbers and lower-case letters only.
+    type: str
+    version_added: '21.17.0'
 '''
 
 EXAMPLES = """
@@ -264,6 +271,7 @@ class NetAppCloudManagerConnectorAzure(object):
             proxy_password=dict(required=False, type='str', default='', no_log=True),
             admin_username=dict(required=True, type='str'),
             admin_password=dict(required=True, type='str', no_log=True),
+            storage_account=dict(required=False, type='str'),
         ))
 
         self.module = AnsibleModule(
@@ -282,7 +290,8 @@ class NetAppCloudManagerConnectorAzure(object):
 
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-
+        if 'storage_account' not in self.parameters or self.parameters['storage_account'] == "":
+            self.parameters['storage_account'] = self.parameters['name'].lower() + 'sa'
         self.rest_api = CloudManagerRestAPI(self.module)
 
     def get_deploy_azure_vm(self):
@@ -315,15 +324,14 @@ class NetAppCloudManagerConnectorAzure(object):
         """
 
         user_data, client_id = self.register_agent_to_service()
-
         template = json.loads(self.na_helper.call_template())
         params = json.loads(self.na_helper.call_parameters())
-
         params['adminUsername']['value'] = self.parameters['admin_username']
         params['adminPassword']['value'] = self.parameters['admin_password']
         params['customData']['value'] = json.dumps(user_data)
         params['location']['value'] = self.parameters['location']
         params['virtualMachineName']['value'] = self.parameters['name']
+        params['storageAccount']['value'] = self.parameters['storage_account']
         if self.rest_api.environment == 'stage':
             params['environment']['value'] = self.rest_api.environment
         if self.parameters.get('vnet_resource_group') is not None:
@@ -485,7 +493,7 @@ class NetAppCloudManagerConnectorAzure(object):
             storage_client = get_client_from_cli_profile(StorageManagementClient)
             storage_client.storage_accounts.delete(
                 self.parameters['resource_group'],
-                self.parameters['name'] + 'sa')
+                self.parameters['storage_account'])
         except CloudError as error:
             self.module.fail_json(msg=to_native(error), exception=traceback.format_exc())
 

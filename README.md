@@ -36,6 +36,11 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.17.0
+
+## New Options
+  - na_cloudmanager_connecto_azure - Support user defined ``storage_account``. The storage account can be created automatically. When ``storage_account`` is not set, the name is constructed by appending 'sa' to the connector ``name``.
+
 ## 21.16.0
 
 ### Bug Fixes

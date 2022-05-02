@@ -738,10 +738,13 @@ class NetAppModule(object):
                 "value": "string"
             },
             "customData": {
-            "value": "string"
+                "value": "string"
             },
             "environment": {
                 "value": "prod"
+            },
+            "storageAccount": {
+                "value": "string"
             }
         }
         """
@@ -779,18 +782,21 @@ class NetAppModule(object):
                 "type": "string"
             },
             "customData": {
-              "type": "string"
+                "type": "string"
             },
             "environment": {
-              "type": "string",
-              "defaultValue": "prod"
+                "type": "string",
+                "defaultValue": "prod"
+            },
+            "storageAccount": {
+                "type": "string"
             }
         },
         "variables": {
             "vnetId": "[parameters('virtualNetworkId')]",
             "subnetRef": "[parameters('subnetId')]",
             "networkInterfaceName": "[concat(parameters('virtualMachineName'),'-nic')]",
-            "diagnosticsStorageAccountName": "[concat(toLower(parameters('virtualMachineName')),'sa')]",
+            "diagnosticsStorageAccountName": "[parameters('storageAccount')]",
             "diagnosticsStorageAccountId": "[concat('Microsoft.Storage/storageAccounts/', variables('diagnosticsStorageAccountName'))]",
             "diagnosticsStorageAccountType": "Standard_LRS",
             "publicIpAddressName": "[concat(parameters('virtualMachineName'),'-ip')]",
