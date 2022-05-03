@@ -110,10 +110,12 @@ class TestMyModule(unittest.TestCase):
         print('Info: %s' % exc.value.args[0]['msg'])
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
-    def test_module_fail_when_required_args_present(self, get_token):
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_aws_fsx.NetAppCloudManagerAWSFSX.get_aws_credentials_id')
+    def test_module_fail_when_required_args_present(self, get_aws_credentials_id, get_token):
         ''' required arguments are reported as errors '''
         with pytest.raises(AnsibleExitJson) as exc:
             set_module_args(self.set_default_args_pass_check())
+            get_aws_credentials_id.return_value = '123', None
             get_token.return_value = 'test', 'test'
             my_module()
             exit_json(changed=True, msg="TestCase Fail when required args are present")
@@ -129,10 +131,10 @@ class TestMyModule(unittest.TestCase):
                                               wait_on_completion_for_fsx, get_aws_fsx_details, get_token):
         set_module_args(self.set_args_create_cloudmanager_aws_fsx())
         get_token.return_value = 'test', 'test'
+        get_aws_credentials_id.return_value = '123', None
         my_obj = my_module()
 
         response = {'id': 'abcdefg12345'}
-        get_aws_credentials_id.return_value = '123', None
         get_post_api.return_value = response, None, None
         check_task_status_for_fsx.return_value = {'providerDetails': {'status': {'status': 'ON', 'lifecycle': 'AVAILABLE'}}}, None
         wait_on_completion_for_fsx.return_value = None

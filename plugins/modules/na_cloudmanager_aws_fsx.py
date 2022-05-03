@@ -137,6 +137,19 @@ options:
       - The endpoint IP address range.
     type: str
 
+  import_file_system:
+    description:
+      - bool option to existing import AWS file system to CloudManager.
+    type: bool
+    default: false
+    version_added: 21.17.0
+
+  file_system_id:
+    description:
+      - The AWS file system ID to import to CloudManager. Required when import_file_system is 'True'
+    type: str
+    version_added: 21.17.0
+
 notes:
 - Support check_mode.
 '''
@@ -161,13 +174,25 @@ EXAMPLES = """
       {tag_key: abcd,
       tag_value: ABCD}]
 
+- name: Import AWS FSX
+  na_cloudmanager_aws_fsx:
+    state: present
+    refresh_token: "{{ xxxxxxxxxxxxxxx }}"
+    name: fsxAnsible
+    region: us-west-2
+    workspace_id: workspace-xxxxx
+    import_file_system: True
+    file_system_id: "{{ xxxxxxxxxxxxxxx }}"
+    tenant_id: account-xxxxx
+    aws_credentials_name: xxxxxxx
+
 - name: Delete NetApp AWS FSx
   netapp.cloudmanager.na_cloudmanager_aws_fsx:
     state: absent
     refresh_token: "{{ xxxxxxxxxxxxxxx }}"
     working_environment_id: fs-xxxxxx
     name: fsxAnsible
-    tenant_id: account-j3aZttuL
+    tenant_id: account-xxxxx
 """
 
 RETURN = '''
@@ -215,6 +240,8 @@ class NetAppCloudManagerAWSFSX:
             route_table_ids=dict(required=False, type='list', elements='str'),
             minimum_ssd_iops=dict(required=False, type='int'),
             endpoint_ip_address_range=dict(required=False, type='str'),
+            import_file_system=dict(required=False, type='bool', default=False),
+            file_system_id=dict(required=False, type='str'),
         ))
 
         self.module = AnsibleModule(
@@ -222,6 +249,7 @@ class NetAppCloudManagerAWSFSX:
             required_if=[
                 ['state', 'present', ['region', 'aws_credentials_name', 'workspace_id', 'fsx_admin_password', 'throughput_capacity',
                                       'primary_subnet_id', 'secondary_subnet_id', 'storage_capacity_size', 'storage_capacity_size_unit']],
+                ['import_file_system', True, ['file_system_id']]
             ],
             required_one_of=[['refresh_token', 'sa_client_id']],
             required_together=[['sa_client_id', 'sa_secret_key'], ['storage_capacity_size', 'storage_capacity_size_unit']],
@@ -237,6 +265,10 @@ class NetAppCloudManagerAWSFSX:
             self.headers = {
                 'x-simulator': 'true'
             }
+        if self.parameters['state'] == 'present':
+            self.aws_credentials_id, error = self.get_aws_credentials_id()
+            if error is not None:
+                self.module.fail_json(msg=str(error))
 
     def get_aws_credentials_id(self):
         """
@@ -253,17 +285,45 @@ class NetAppCloudManagerAWSFSX:
                 return each['id'], None
         return None, "Error: aws_credentials_name not found"
 
-    def create_aws_fsx(self):
-        """ Create AWS FSx """
+    def discover_aws_fsx(self):
+        """
+        discover aws_fsx
+        """
+        api = "/fsx-ontap/working-environments/%s/discover?credentials-id=%s&workspace-id=%s&region=%s"\
+              % (self.parameters['tenant_id'], self.aws_credentials_id, self.parameters['workspace_id'], self.parameters['region'])
+        response, error, dummy = self.rest_api.get(api, None, header=self.headers)
+        if error:
+            return "Error: discovering aws_fsx %s" % error
+        id_found = False
+        for each in response:
+            if each['id'] == self.parameters['file_system_id']:
+                id_found = True
+                break
+        if not id_found:
+            return "Error: file_system_id provided could not be found"
 
-        aws_credentials_id, error = self.get_aws_credentials_id()
-        if error is not None:
-            self.module.fail_json(msg=str(error))
-
+    def recover_aws_fsx(self):
+        """
+        recover aws_fsx
+        """
         json = {"name": self.parameters['name'],
                 "region": self.parameters['region'],
                 "workspaceId": self.parameters['workspace_id'],
-                "credentialsId": aws_credentials_id,
+                "credentialsId": self.aws_credentials_id,
+                "fileSystemId": self.parameters['file_system_id'],
+                }
+        api_url = "/fsx-ontap/working-environments/%s/recover" % self.parameters['tenant_id']
+        response, error, dummy = self.rest_api.post(api_url, json, header=self.headers)
+        if error is not None:
+            self.module.fail_json(
+                msg="Error: unexpected response on recovering AWS FSx: %s, %s" % (error, response))
+
+    def create_aws_fsx(self):
+        """ Create AWS FSx """
+        json = {"name": self.parameters['name'],
+                "region": self.parameters['region'],
+                "workspaceId": self.parameters['workspace_id'],
+                "credentialsId": self.aws_credentials_id,
                 "throughputCapacity": self.parameters['throughput_capacity'],
                 "storageCapacity": {
                     "size": self.parameters['storage_capacity_size'],
@@ -367,9 +427,18 @@ class NetAppCloudManagerAWSFSX:
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on fetching AWS FSx: %s" % str(error))
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
+        if self.parameters['import_file_system'] and cd_action == "create":
+            error = self.discover_aws_fsx()
+            if error is not None:
+                self.module.fail_json(msg="Error: unexpected response on discovering AWS FSx: %s" % str(error))
+            cd_action = "import"
+            self.na_helper.changed = True
 
         if self.na_helper.changed and not self.module.check_mode:
-            if cd_action == "create":
+            if cd_action == "import":
+                self.recover_aws_fsx()
+                working_environment_id = self.parameters['file_system_id']
+            elif cd_action == "create":
                 working_environment_id = self.create_aws_fsx()
             elif cd_action == "delete":
                 self.delete_aws_fsx(current['id'], self.parameters['tenant_id'])

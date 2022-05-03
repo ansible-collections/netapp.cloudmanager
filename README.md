@@ -38,8 +38,11 @@ https://github.com/ansible-collections/netapp/wiki
 
 ## 21.17.0
 
+### Minor Changes
+  - na_cloudmanager_aws_fsx - Import AWS FSX to CloudManager.
 ## New Options
   - na_cloudmanager_connecto_azure - Support user defined ``storage_account``. The storage account can be created automatically. When ``storage_account`` is not set, the name is constructed by appending 'sa' to the connector ``name``.
+  - na_cloudmanager_aws_fsx - Import AWS FSX to CloudManager by adding new parameters ``import_file_system`` and ``file_system_id``.
 
 ## 21.16.0
 
