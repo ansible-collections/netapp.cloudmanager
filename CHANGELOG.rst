@@ -5,6 +5,18 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.17.0
+========
+
+Minor Changes
+-------------
+
+- na_cloudmanager_aws_fsx - Import AWS FSX to CloudManager by adding new parameters ``import_file_system`` and ``file_system_id``.
+- na_cloudmanager_connector_azure - Support user defined ``storage_account`` name. The ``storage_account`` can be created automatically. When ``storage_account`` is not set, the name is constructed by appending 'sa' to the connector ``name``.
+- na_cloudmanager_cvo_aws - Support license_type update
+- na_cloudmanager_cvo_azure - Support license_type update
+- na_cloudmanager_cvo_gcp - Support license_type update
+
 v21.16.0
 ========
 

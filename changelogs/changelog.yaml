@@ -152,6 +152,22 @@ releases:
     - DEVOPS-4758.yaml
     - DEVOPS-4820.yaml
     release_date: '2022-04-05'
+  21.17.0:
+    changes:
+      minor_changes:
+      - na_cloudmanager_aws_fsx - Import AWS FSX to CloudManager by adding new parameters
+        ``import_file_system`` and ``file_system_id``.
+      - na_cloudmanager_connector_azure - Support user defined ``storage_account``
+        name. The ``storage_account`` can be created automatically. When ``storage_account``
+        is not set, the name is constructed by appending 'sa' to the connector ``name``.
+      - na_cloudmanager_cvo_aws - Support license_type update
+      - na_cloudmanager_cvo_azure - Support license_type update
+      - na_cloudmanager_cvo_gcp - Support license_type update
+    fragments:
+    - DEVOPS-4223.yaml
+    - DEVOPS-4281.yaml
+    - DEVOPS-5002.yaml
+    release_date: '2022-05-04'
   21.3.0:
     modules:
     - description: NetApp Cloud Manager Aggregate
