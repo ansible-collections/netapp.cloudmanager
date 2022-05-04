@@ -40,8 +40,10 @@ https://github.com/ansible-collections/netapp/wiki
 
 ### Minor Changes
   - na_cloudmanager_aws_fsx - Import AWS FSX to CloudManager.
-## New Options
-  - na_cloudmanager_connecto_azure - Support user defined ``storage_account``. The storage account can be created automatically. When ``storage_account`` is not set, the name is constructed by appending 'sa' to the connector ``name``.
+  - Support ``license_type`` modification for AWS, AZURE and GCP CVOs.
+
+### New Options
+  - na_cloudmanager_connector_azure - Support user defined ``storage_account``. The storage account can be created automatically. When ``storage_account`` is not set, the name is constructed by appending 'sa' to the connector ``name``.
   - na_cloudmanager_aws_fsx - Import AWS FSX to CloudManager by adding new parameters ``import_file_system`` and ``file_system_id``.
 
 ## 21.16.0
@@ -52,7 +54,6 @@ https://github.com/ansible-collections/netapp/wiki
 
 ### Minor Changes
   - na_cloudmanager_connector_gcp - when using the user application default credential authentication by running the command gcloud auth application-default login, ``gcp_service_account_path`` is not needed.
-  - Support ``license_type`` modification for AWS, AZURE and GCP CVOs.
 
 ## 21.15.0
 
