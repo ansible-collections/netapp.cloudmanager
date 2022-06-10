@@ -42,7 +42,7 @@ try:
 except ImportError:
     ansible_version = 'unknown'
 
-COLLECTION_VERSION = "21.17.0"
+COLLECTION_VERSION = "21.18.0"
 PROD_ENVIRONMENT = {
     'CLOUD_MANAGER_HOST': 'cloudmanager.cloud.netapp.com',
     'AUTH0_DOMAIN': 'netapp-cloud-account.auth0.com',

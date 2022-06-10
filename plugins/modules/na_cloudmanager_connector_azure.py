@@ -305,7 +305,6 @@ class NetAppCloudManagerConnectorAzure(object):
         exists = False
 
         resource_client = get_client_from_cli_profile(ResourceManagementClient)
-
         try:
             exists = resource_client.deployments.check_existence(self.parameters['resource_group'], self.parameters['name'])
 
@@ -334,14 +333,20 @@ class NetAppCloudManagerConnectorAzure(object):
         params['storageAccount']['value'] = self.parameters['storage_account']
         if self.rest_api.environment == 'stage':
             params['environment']['value'] = self.rest_api.environment
-        if self.parameters.get('vnet_resource_group') is not None:
-            network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
-                self.parameters['subscription_id'], self.parameters['vnet_resource_group'], self.parameters['vnet_name'])
+        if '/subscriptions' in self.parameters['vnet_name']:
+            network = self.parameters['vnet_name']
         else:
-            network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
-                self.parameters['subscription_id'], self.parameters['resource_group'], self.parameters['vnet_name'])
+            if self.parameters.get('vnet_resource_group') is not None:
+                network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
+                    self.parameters['subscription_id'], self.parameters['vnet_resource_group'], self.parameters['vnet_name'])
+            else:
+                network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
+                    self.parameters['subscription_id'], self.parameters['resource_group'], self.parameters['vnet_name'])
 
-        subnet = '%s/subnets/%s' % (network, self.parameters['subnet_name'])
+        if '/subscriptions' in self.parameters['subnet_name']:
+            subnet = self.parameters['subnet_name']
+        else:
+            subnet = '%s/subnets/%s' % (network, self.parameters['subnet_name'])
 
         if self.parameters.get('network_security_resource_group') is not None:
             network_security_group_name = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/networkSecurityGroups/%s' % (
@@ -400,14 +405,20 @@ class NetAppCloudManagerConnectorAzure(object):
         :return: UserData, ClientID
         """
 
-        if self.parameters.get('vnet_resource_group') is not None:
-            network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
-                self.parameters['subscription_id'], self.parameters['vnet_resource_group'], self.parameters['vnet_name'])
+        if '/subscriptions' in self.parameters['vnet_name']:
+            network = self.parameters['vnet_name']
         else:
-            network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
-                self.parameters['subscription_id'], self.parameters['resource_group'], self.parameters['vnet_name'])
+            if self.parameters.get('vnet_resource_group') is not None:
+                network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
+                    self.parameters['subscription_id'], self.parameters['vnet_resource_group'], self.parameters['vnet_name'])
+            else:
+                network = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s' % (
+                    self.parameters['subscription_id'], self.parameters['resource_group'], self.parameters['vnet_name'])
 
-        subnet = '%s/subnets/%s' % (network, self.parameters['subnet_name'])
+        if '/subscriptions' in self.parameters['subnet_name']:
+            subnet = self.parameters['subnet_name']
+        else:
+            subnet = '%s/subnets/%s' % (network, self.parameters['subnet_name'])
 
         if self.parameters.get('account_id') is None:
             response, error = self.na_helper.get_or_create_account(self.rest_api)

@@ -36,6 +36,9 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.18.0
+  - na_cloudmanager_connector_azure - support full subnet_id and vnet_id
+
 ## 21.17.0
 
 ### Minor Changes
