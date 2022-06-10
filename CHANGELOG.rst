@@ -5,6 +5,14 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.18.0
+========
+
+Minor Changes
+-------------
+
+- na_cloudmanager_connector_azure - Support full ``subnet_id`` and ``vnet_id``.
+
 v21.17.0
 ========
 
