@@ -96,6 +96,7 @@ class TestMyModule(unittest.TestCase):
             'svm_password': 'password',
             'refresh_token': 'myrefresh_token',
             'use_latest_version': False,
+            'capacity_tier': 'cloudStorage',
             'ontap_version': 'ONTAP-9.10.0.T1.gcp',
             'is_ha': False,
             'gcp_service_account': 'test_account',
@@ -385,6 +386,7 @@ class TestMyModule(unittest.TestCase):
         get_cvo.return_value = my_cvo, None
         cvo_property = {'name': 'Dummyname',
                         'publicId': 'test',
+                        'status': {'status': 'ON'},
                         'ontapClusterProperties': {
                             'capacityTierInfo': {'tierLevel': 'standard'},
                             'licenseType': {'capacityLimit': {'size': 10.0, 'unit': 'TB'},
@@ -412,7 +414,7 @@ class TestMyModule(unittest.TestCase):
                        'name': 'Dummyname',
                        'ontapClusterProperties': None,
                        'publicId': 'test',
-                       'status': None,
+                       'status': {'status': 'ON'},
                        'userTags': {'key1': 'value1'},
                        'workingEnvironmentType': 'VSA'}
         get_details.return_value = cvo_details, None
@@ -434,6 +436,7 @@ class TestMyModule(unittest.TestCase):
         print('Info: test_change_cloudmanager_cvo_gcp: %s' % repr(exc.value))
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_writing_speed_state')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_instance_license_type')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
@@ -443,7 +446,7 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
     def test_change_cloudmanager_cvo_gcp_ha(self, get_cvo, get_property, get_details, upgrade_ontap_image, update_svm_password,
-                                            update_cvo_tags, update_tier_level, update_instance_license_type, get_token):
+                                            update_cvo_tags, update_tier_level, update_instance_license_type, update_writing_speed_state, get_token):
         data = self.set_args_create_cloudmanager_cvo_gcp()
         data['is_ha'] = True
         data['svm_password'] = 'newpassword'
@@ -478,6 +481,7 @@ class TestMyModule(unittest.TestCase):
         get_cvo.return_value = my_cvo, None
         cvo_property = {'name': 'Dummyname',
                         'publicId': 'test',
+                        'status': {'status': 'ON'},
                         'ontapClusterProperties': {
                             'capacityTierInfo': {'tierLevel': 'standard'},
                             'licenseType': {'capacityLimit': {'size': 10.0, 'unit': 'TB'},
@@ -508,7 +512,7 @@ class TestMyModule(unittest.TestCase):
                        'name': 'Dummyname',
                        'ontapClusterProperties': None,
                        'publicId': 'test',
-                       'status': None,
+                       'status': {'status': 'ON'},
                        'userTags': {'key1': 'value1', 'partner-platform-serial-number': '90920140000000001019',
                                     'gcp_resource_id': '14004944518802780827', 'count-down': '3'},
                        'workingEnvironmentType': 'VSA'}
@@ -525,6 +529,8 @@ class TestMyModule(unittest.TestCase):
                 update_tier_level.return_value = True, None
             elif item == 'ontap_version':
                 upgrade_ontap_image.return_value = True, None
+            elif item == 'writing_speed_state':
+                update_writing_speed_state.return_value = True, None
             elif item == 'instance_type':
                 update_instance_license_type.return_value = True, None
 

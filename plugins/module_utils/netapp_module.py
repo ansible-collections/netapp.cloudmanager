@@ -1104,6 +1104,7 @@ class NetAppModule(object):
         if provider == 'aws':
             version += '.T1.ha' if self.parameters['is_ha'] else '.T1'
         elif provider == 'gcp':
+            version += '.T1' if not ontap_version.endswith('T1') else ''
             version += '.gcpha' if self.parameters['is_ha'] else '.gcp'
         api = '%s/metadata/permutations' % rest_api.api_root_path
         params = {'region': region,
@@ -1124,7 +1125,7 @@ class NetAppModule(object):
         if desired['update_svm_password']:
             modified = ['svm_password']
         # Get current working environment property
-        properties = ['ontapClusterProperties.fields(upgradeVersions)']
+        properties = ['status', 'ontapClusterProperties.fields(upgradeVersions)']
         # instanceType in aws case is stored in awsProperties['instances'][0]['instanceType']
         if provider == 'aws':
             properties.append('awsProperties')
@@ -1133,14 +1134,31 @@ class NetAppModule(object):
 
         we, err = self.get_working_environment_property(rest_api, headers, properties)
 
-        tier_level = we['ontapClusterProperties']['capacityTierInfo']['tierLevel']
+        if err is not None:
+            return None, err
+
+        if we['status'] is None or we['status']['status'] != 'ON':
+            return None, "Error: get_modify_cvo_params working environment %s status is not ON. Operation cannot be performed." % we['publicId']
+
+        tier_level = None
+        if we['ontapClusterProperties']['capacityTierInfo'] is not None:
+            tier_level = we['ontapClusterProperties']['capacityTierInfo']['tierLevel']
 
         # collect changed attributes
-        if provider == 'azure':
-            if desired['capacity_tier'] == 'Blob' and tier_level != desired['tier_level']:
-                modified.append('tier_level')
-        elif tier_level != desired['tier_level']:
-            modified.append('tier_level')
+        if tier_level is not None and tier_level != desired['tier_level']:
+            if provider == 'azure':
+                if desired['capacity_tier'] == 'Blob':
+                    modified.append('tier_level')
+            elif provider == 'aws':
+                if desired['capacity_tier'] == 'S3':
+                    modified.append('tier_level')
+            elif provider == 'gcp':
+                if desired['capacity_tier'] == 'cloudStorage':
+                    modified.append('tier_level')
+
+        if 'writing_speed_state' in desired:
+            if we['ontapClusterProperties']['writingSpeedState'] != desired['writing_speed_state'].upper():
+                modified.append('writing_speed_state')
 
         if provider == 'aws':
             current_instance_type = we['awsProperties']['instances'][0]['instanceType']
@@ -1199,9 +1217,6 @@ class NetAppModule(object):
                 modified.append('project_id')
             if key == 'zone' and we['providerProperties']['zoneName'][0] != value:
                 modified.append('zone')
-            if key == 'writing_speed_state' and we['ontapClusterProperties']['writingSpeedState'] is not None and \
-                    we['ontapClusterProperties']['writingSpeedState'] != value:
-                modified.append('writing_speed_state')
             if key == 'cidr' and we['providerProperties']['vnetCidr'] != value:
                 modified.append('cidr')
             if key == 'location' and we['providerProperties']['regionName'] != value:
@@ -1270,17 +1285,24 @@ class NetAppModule(object):
 
         return True, None
 
+    def update_writing_speed_state(self, api_root, rest_api, headers, writing_speed_state):
+        body = {'writingSpeedState': writing_speed_state.upper()}
+        response, err, dummy = rest_api.put(api_root + "writing-speed", body, header=headers)
+        if err is not None:
+            return False, 'Error: unexpected response on modify writing_speed_state: %s, %s' % (str(err), str(response))
+        # check upgrade status
+        dummy, err = self.wait_cvo_update_complete(rest_api, headers)
+        return err is None, err
+
     def update_instance_license_type(self, api_root, rest_api, headers, instance_type, license_type):
         body = {'instanceType': instance_type,
                 'licenseType': license_type}
         response, err, dummy = rest_api.put(api_root + "license-instance-type", body, header=headers)
         if err is not None:
-            return False, 'Error: unexpected response on modify instance_type and instance_type: %s, %s' % (str(err), str(response))
+            return False, 'Error: unexpected response on modify instance_type and license_type: %s, %s' % (str(err), str(response))
         # check upgrade status
         dummy, err = self.wait_cvo_update_complete(rest_api, headers)
-        if err is not None:
-            return False, err
-        return True, None
+        return err is None, err
 
     def set_config_flag(self, rest_api, headers):
         body = {'value': True, 'valueType': 'BOOLEAN'}
@@ -1336,6 +1358,4 @@ class NetAppModule(object):
             return False, err
         # check upgrade status
         dummy, err = self.wait_ontap_image_upgrade_complete(rest_api, headers, desired)
-        if err is not None:
-            return False, err
-        return True, None
+        return err is None, err

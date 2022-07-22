@@ -528,7 +528,7 @@ class NetAppCloudManagerCVOGCP:
         )
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-        self.changeable_params = ['svm_password', 'tier_level', 'gcp_labels', 'ontap_version', 'instance_type', 'license_type']
+        self.changeable_params = ['svm_password', 'tier_level', 'gcp_labels', 'ontap_version', 'instance_type', 'license_type', 'writing_speed_state']
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = '/occm/api/gcp/%s' % ('ha' if self.parameters['is_ha'] else 'vsa')
@@ -582,7 +582,7 @@ class NetAppCloudManagerCVOGCP:
         if self.parameters['is_ha'] is False:
             if self.parameters.get('writing_speed_state') is None:
                 self.parameters['writing_speed_state'] = 'NORMAL'
-            json.update({'writingSpeedState': self.parameters['writing_speed_state']})
+            json.update({'writingSpeedState': self.parameters['writing_speed_state'].upper()})
 
         if self.parameters.get('data_encryption_type') is not None and self.parameters['data_encryption_type'] == "GCP":
             json.update({'dataEncryptionType': self.parameters['data_encryption_type']})
@@ -759,6 +759,10 @@ class NetAppCloudManagerCVOGCP:
                     self.module.fail_json(changed=False, msg=error)
             if item == 'tier_level':
                 response, error = self.na_helper.update_tier_level(base_url, self.rest_api, self.headers, self.parameters['tier_level'])
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
+            if item == 'writing_speed_state':
+                response, error = self.na_helper.update_writing_speed_state(base_url, self.rest_api, self.headers, self.parameters['writing_speed_state'])
                 if error is not None:
                     self.module.fail_json(changed=False, msg=error)
             if item == 'ontap_version':

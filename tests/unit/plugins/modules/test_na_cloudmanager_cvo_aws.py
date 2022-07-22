@@ -335,6 +335,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_writing_speed_state')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_instance_license_type')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_tier_level')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.update_cvo_tags')
@@ -344,7 +345,7 @@ class TestMyModule(unittest.TestCase):
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_property')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_working_environment_details_by_name')
     def test_change_cloudmanager_cvo_aws(self, get_cvo, get_property, get_details, upgrade_ontap_image, update_svm_password, update_cvo_tags,
-                                         update_tier_level, update_instance_license_type, get_token):
+                                         update_tier_level, update_instance_license_type, update_writing_speed_state, get_token):
         data = self.set_default_args_pass_check()
         data['svm_password'] = 'newpassword'
         data['update_svm_password'] = True
@@ -352,7 +353,7 @@ class TestMyModule(unittest.TestCase):
         data['upgrade_ontap_version'] = True
         set_module_args(data)
 
-        modify = ['svm_password', 'aws_tag', 'tier_level', 'ontap_version', 'instance_type', 'license_type']
+        modify = ['svm_password', 'aws_tag', 'tier_level', 'ontap_version', 'instance_type', 'license_type', 'writing_speed_state']
 
         my_cvo = {
             'name': 'TestA',
@@ -367,6 +368,7 @@ class TestMyModule(unittest.TestCase):
         get_cvo.return_value = my_cvo, None
         cvo_property = {'name': 'TestA',
                         'publicId': 'test',
+                        'status': {'status': 'ON'},
                         'ontapClusterProperties': {
                             'capacityTierInfo': {'tierLevel': 'normal'},
                             'licenseType': {'capacityLimit': {'size': 2.0, 'unit': 'TB'},
@@ -398,7 +400,7 @@ class TestMyModule(unittest.TestCase):
                        'name': 'TestA',
                        'ontapClusterProperties': None,
                        'publicId': 'test',
-                       'status': None,
+                       'status': {'status': 'ON'},
                        'userTags': {'key1': 'value1'},
                        'workingEnvironmentType': 'VSA'}
         get_details.return_value = cvo_details, None
@@ -414,6 +416,8 @@ class TestMyModule(unittest.TestCase):
                 update_tier_level.return_value = True, None
             elif item == 'ontap_version':
                 upgrade_ontap_image.return_value = True, None
+            elif item == 'writing_speed_state':
+                update_writing_speed_state.return_value = True, None
             elif item == 'instance_type' or item == 'license_type':
                 update_instance_license_type.return_value = True, None
 

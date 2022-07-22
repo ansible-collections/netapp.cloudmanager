@@ -532,7 +532,7 @@ class NetAppCloudManagerCVOAWS:
 
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-        self.changeable_params = ['aws_tag', 'svm_password', 'tier_level', 'ontap_version', 'instance_type', 'license_type']
+        self.changeable_params = ['aws_tag', 'svm_password', 'tier_level', 'ontap_version', 'instance_type', 'license_type', 'writing_speed_state']
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = '/occm/api/%s' % ('aws/ha' if self.parameters['is_ha'] else 'vsa')
@@ -623,7 +623,7 @@ class NetAppCloudManagerCVOAWS:
             json['vsaMetadata'].update({"capacityPackageName": self.parameters['capacity_package_name']})
 
         if self.parameters.get('writing_speed_state') is not None:
-            json.update({"writingSpeedState": self.parameters['writing_speed_state']})
+            json.update({"writingSpeedState": self.parameters['writing_speed_state'].upper()})
 
         if self.parameters.get('iops') is not None:
             json.update({"iops": self.parameters['iops']})
@@ -740,6 +740,10 @@ class NetAppCloudManagerCVOAWS:
                     self.module.fail_json(changed=False, msg=error)
             if item == 'tier_level':
                 response, error = self.na_helper.update_tier_level(base_url, self.rest_api, self.headers, self.parameters['tier_level'])
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
+            if item == 'writing_speed_state':
+                response, error = self.na_helper.update_writing_speed_state(base_url, self.rest_api, self.headers, self.parameters['writing_speed_state'])
                 if error is not None:
                     self.module.fail_json(changed=False, msg=error)
             if item == 'ontap_version':
