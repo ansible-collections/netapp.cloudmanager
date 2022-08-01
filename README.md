@@ -1,6 +1,7 @@
 [![Documentation](https://img.shields.io/badge/docs-brightgreen.svg)](https://docs.ansible.com/ansible/devel/collections/netapp/cloudmanager/index.html)
 ![example workflow](https://github.com/ansible-collections/netapp.cloudmanager/actions/workflows/main.yml/badge.svg)
 [![codecov](https://codecov.io/gh/ansible-collections/netapp.cloudmanager/branch/main/graph/badge.svg?token=weBYkksxSi)](https://codecov.io/gh/ansible-collections/netapp.cloudmanager)
+[![Discord](https://img.shields.io/discord/855068651522490400)](https://discord.gg/NetApp)
 # Ansible Collection - netapp.cloudmanager
 
 Copyright (c) 2022 NetApp, Inc. All rights reserved.
@@ -26,7 +27,7 @@ collections:
 https://docs.ansible.com/ansible/devel/collections/netapp/cloudmanager/
 
 # Need help
-Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
+Join our [Discord](https://discord.gg/NetApp) and look for our #ansible channel.
 
 # Code of Conduct
 This collection follows the [Ansible project's Code of Conduct](https://docs.ansible.com/ansible/devel/community/code_of_conduct.html).
