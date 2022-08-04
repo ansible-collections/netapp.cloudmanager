@@ -37,6 +37,9 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.19.0
+  - Support writing_speed_state modification for AWS, AZURE and GCP CVOs.
+
 ## 21.18.0
   - na_cloudmanager_connector_azure - support full subnet_id and vnet_id
   - Support ``writing_speed_state`` modification for AWS, AZURE and GCP CVOs.
