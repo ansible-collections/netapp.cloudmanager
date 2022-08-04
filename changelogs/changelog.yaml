@@ -175,6 +175,13 @@ releases:
     fragments:
     - DEVOPS-5151.yaml
     release_date: '2022-06-09'
+  21.19.0:
+    changes:
+      minor_changes:
+      - Support ``writing_speed_state`` modification on AWS, AZURE and GCP CVOs.
+    fragments:
+    - DEVOPS-5252.yaml
+    release_date: '2022-08-03'
   21.3.0:
     modules:
     - description: NetApp Cloud Manager Aggregate

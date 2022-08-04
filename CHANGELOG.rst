@@ -5,6 +5,14 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.19.0
+========
+
+Minor Changes
+-------------
+
+- Support ``writing_speed_state`` modification on AWS, AZURE and GCP CVOs.
+
 v21.18.0
 ========
 
