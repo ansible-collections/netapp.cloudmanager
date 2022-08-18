@@ -194,7 +194,7 @@ class NetAppModule(object):
             return None, "Error: get_working_environment_details %s" % error
         return response, None
 
-    def get_aws_fsx_details(self, rest_api, header=None):
+    def get_aws_fsx_details(self, rest_api, header=None, name=None):
         '''
         Use working environment id and tenantID to get working environment details including:
         name: working environment name,
@@ -204,11 +204,13 @@ class NetAppModule(object):
         api += self.parameters['tenant_id']
         count = 0
         fsx_details = None
+        if name is None:
+            name = self.parameters['name']
         response, error, dummy = rest_api.get(api, None, header=header)
         if error:
             return response, "Error: get_aws_fsx_details %s" % error
         for each in response:
-            if each['name'] == self.parameters['name']:
+            if each['name'] == name:
                 count += 1
                 fsx_details = each
             if self.parameters.get('working_environment_id'):
@@ -218,7 +220,7 @@ class NetAppModule(object):
             return fsx_details, None
         elif count > 1:
             return response, "More than one AWS FSx found for %s, use working_environment_id for delete" \
-                             "or use different name for create" % self.parameters['name']
+                             "or use different name for create" % name
         return None, None
 
     def get_aws_fsx_details_by_id(self, rest_api, header=None):
@@ -402,12 +404,13 @@ class NetAppModule(object):
         '''
         set API url root path based on the working environment provider
         '''
-        provider = working_environment_details['cloudProviderName']
-        is_ha = working_environment_details['isHA']
+        provider = working_environment_details['cloudProviderName'] if working_environment_details.get('cloudProviderName') else None
         api_root_path = None
-        if provider == "Amazon":
-            api_root_path = "/occm/api/aws/ha" if is_ha else "/occm/api/vsa"
-        elif is_ha:
+        if self.parameters['working_environment_id'].startswith('fs-'):
+            api_root_path = "/occm/api/fsx"
+        elif provider == "Amazon":
+            api_root_path = "/occm/api/aws/ha" if working_environment_details['isHA'] else "/occm/api/vsa"
+        elif working_environment_details['isHA']:
             api_root_path = "/occm/api/" + provider.lower() + "/ha"
         else:
             api_root_path = "/occm/api/" + provider.lower() + "/vsa"

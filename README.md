@@ -37,7 +37,14 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.20.0
+
+### Minor Changes
+  - na_cloudmanager_volume - Support AWS FsxN working environment
+
 ## 21.19.0
+
+### Minor Changes
   - Support writing_speed_state modification for AWS, AZURE and GCP CVOs.
 
 ## 21.18.0

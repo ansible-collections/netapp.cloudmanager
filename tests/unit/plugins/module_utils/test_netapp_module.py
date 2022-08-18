@@ -347,6 +347,7 @@ def test_get_accounts_info(mock_request):
 
 def test_set_api_root_path():
     helper = NetAppModule()
+    helper.parameters['working_environment_id'] = 'abc'
     working_environment_details = {'cloudProviderName': 'Amazon', 'isHA': False}
     helper.set_api_root_path(working_environment_details, helper)
     assert helper.api_root_path == '/occm/api/vsa'

@@ -182,6 +182,12 @@ options:
         - Operating system (iSCSI protocol parameters).
         type: str
 
+    tenant_id:
+        description:
+        - The NetApp account ID that the Connector will be associated with. To be used only when using FSx.
+        type: str
+        version_added: 21.22.0
+
     initiators:
         description:
         - Set of attributes of Initiators (iSCSI protocol parameters).
@@ -270,6 +276,7 @@ class NetAppCloudmanagerVolume(object):
             users=dict(required=False, type='list', elements='str'),
             igroups=dict(required=False, type='list', elements='str'),
             os_name=dict(required=False, type='str'),
+            tenant_id=dict(required=False, type='str'),
             initiators=dict(required=False, type='list', elements='dict', options=dict(
                 alias=dict(required=True, type='str'),
                 iqn=dict(required=True, type='str'),)),
@@ -303,22 +310,35 @@ class NetAppCloudmanagerVolume(object):
         self.headers = {
             'X-Agent-Id': self.rest_api.format_client_id(self.parameters['client_id'])
         }
-        if self.parameters.get('working_environment_id'):
+        if self.rest_api.simulator:
+            self.headers.update({'x-simulator': 'true'})
+        if self.parameters.get('tenant_id'):
+            working_environment_detail, error = self.na_helper.get_aws_fsx_details(self.rest_api, self.headers, self.parameters['working_environment_name'])
+        elif self.parameters.get('working_environment_id'):
             working_environment_detail, error = self.na_helper.get_working_environment_details(self.rest_api, self.headers)
         else:
             working_environment_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api,
                                                                                                        self.headers,
                                                                                                        self.parameters['working_environment_name'])
-        if working_environment_detail is not None:
-            self.parameters['working_environment_id'] = working_environment_detail['publicId']
-        else:
-            self.module.fail_json(msg="Error: Cannot find working environment: %s" % str(error))
+        if working_environment_detail is None:
+            self.module.fail_json(msg="Error: Cannot find working environment, if it is an AWS FSxN, please provide tenant_id: %s" % str(error))
+        self.parameters['working_environment_id'] = working_environment_detail['publicId']\
+            if working_environment_detail.get('publicId') else working_environment_detail['id']
         self.na_helper.set_api_root_path(working_environment_detail, self.rest_api)
+        self.is_fsx = self.parameters['working_environment_id'].startswith('fs-')
 
         if self.parameters.get('svm_name') is None:
-            response, err, dummy = self.rest_api.send_request("GET", "%s/working-environments/%s" % (
-                self.rest_api.api_root_path, self.parameters['working_environment_id']), None, None, header=self.headers)
-            self.parameters['svm_name'] = response['svmName']
+            fsx_path = ''
+            if self.is_fsx:
+                fsx_path = '/svms'
+            response, err, dummy = self.rest_api.send_request("GET", "%s/working-environments/%s%s" % (
+                self.rest_api.api_root_path, self.parameters['working_environment_id'], fsx_path), None, None, header=self.headers)
+            if err is not None:
+                self.module.fail_json(changed=False, msg="Error: unexpected response on getting svm: %s, %s" % (str(err), str(response)))
+            if self.is_fsx:
+                self.parameters['svm_name'] = response[0]['name']
+            else:
+                self.parameters['svm_name'] = response['svmName']
 
         if self.parameters['volume_protocol'] == 'nfs':
             extra_options = []
@@ -371,8 +391,12 @@ class NetAppCloudmanagerVolume(object):
             self.parameters['users'] = new_users
 
     def get_volume(self):
-        response, err, dummy = self.rest_api.send_request("GET", "%s/volumes?workingEnvironmentId=%s" % (
-            self.rest_api.api_root_path, self.parameters['working_environment_id']), None, header=self.headers)
+        if self.is_fsx:
+            query_param = 'fileSystemId'
+        else:
+            query_param = 'workingEnvironmentId'
+        response, err, dummy = self.rest_api.send_request("GET", "%s/volumes?%s=%s" % (
+            self.rest_api.api_root_path, query_param, self.parameters['working_environment_id']), None, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg="Error: unexpected response on getting volume: %s, %s" % (str(err), str(response)))
         target_vol = dict()
@@ -455,13 +479,16 @@ class NetAppCloudmanagerVolume(object):
                 quote['shareInfo']['accessControl']['permission'] = self.parameters['permission']
             if self.parameters.get('share_name'):
                 quote['shareInfo']['shareName'] = self.parameters['share_name']
-        response, err, dummy = self.rest_api.send_request("POST", "%s/volumes/quote" % self.rest_api.api_root_path,
-                                                          None, quote, header=self.headers)
-        if err is not None:
-            self.module.fail_json(changed=False, msg="Error: unexpected response on quoting volume: %s, %s" % (str(err), str(response)))
-        quote['newAggregate'] = response['newAggregate']
-        quote['aggregateName'] = response['aggregateName']
-        quote['maxNumOfDisksApprovedToAdd'] = response['numOfDisks']
+        if not self.is_fsx:
+            response, err, dummy = self.rest_api.send_request("POST", "%s/volumes/quote" % self.rest_api.api_root_path,
+                                                              None, quote, header=self.headers)
+            if err is not None:
+                self.module.fail_json(changed=False, msg="Error: unexpected response on quoting volume: %s, %s" % (str(err), str(response)))
+            quote['newAggregate'] = response['newAggregate']
+            quote['aggregateName'] = response['aggregateName']
+            quote['maxNumOfDisksApprovedToAdd'] = response['numOfDisks']
+        else:
+            quote['fileSystemId'] = self.parameters['working_environment_id']
         if self.parameters.get('enable_deduplication'):
             quote['deduplication'] = self.parameters.get('enable_deduplication')
         if self.parameters.get('enable_thin_provisioning'):
