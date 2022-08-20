@@ -39,6 +39,9 @@ https://github.com/ansible-collections/netapp/wiki
 
 ## 21.20.0
 
+### New Options
+  - Add `subnet_path` option in CVO GCP.
+
 ### Minor Changes
   - na_cloudmanager_volume - Support AWS FsxN working environment
 

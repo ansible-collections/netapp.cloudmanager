@@ -20,55 +20,55 @@ version_added: '21.4.0'
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 
 description:
-- Create, delete, or manage Cloud Manager CVO for GCP.
+  - Create, delete, or manage Cloud Manager CVO for GCP.
 
 options:
 
   backup_volumes_to_cbs:
     description:
-    - Automatically backup all volumes to cloud.
+      - Automatically backup all volumes to cloud.
     default: false
     type: bool
 
   capacity_tier:
     description:
-    - Whether to enable data tiering for the first data aggregate.
+      - Whether to enable data tiering for the first data aggregate.
     choices: ['cloudStorage']
     type: str
 
   client_id:
     required: true
     description:
-    - The connector ID of the Cloud Manager Connector.
-    - You can find the ID from the Connector tab on U(https://cloudmanager.netapp.com).
+      - The connector ID of the Cloud Manager Connector.
+      - You can find the ID from the Connector tab on U(https://cloudmanager.netapp.com).
     type: str
 
   data_encryption_type:
     description:
-    - Type of encryption to use for this working environment.
+      - Type of encryption to use for this working environment.
     choices: ['GCP']
     type: str
 
   gcp_encryption_parameters:
     description:
-    - The GCP encryption parameters.
+      - The GCP encryption parameters.
     type: str
     version_added: 21.10.0
 
   enable_compliance:
     description:
-    - Enable the Cloud Compliance service on the working environment.
+      - Enable the Cloud Compliance service on the working environment.
     default: false
     type: bool
 
   firewall_rule:
     description:
-    - Firewall name for a single node cluster.
+      - Firewall name for a single node cluster.
     type: str
 
   gcp_labels:
     description:
-    - Optionally provide up to four key-value pairs with which to all GCP entities created by Cloud Manager.
+      - Optionally provide up to four key-value pairs with which to all GCP entities created by Cloud Manager.
     type: list
     elements: dict
     suboptions:
@@ -81,53 +81,53 @@ options:
 
   gcp_service_account:
     description:
-    - The gcp_service_account email in order to enable tiering of cold data to Google Cloud Storage.
+      - The gcp_service_account email in order to enable tiering of cold data to Google Cloud Storage.
     required: true
     type: str
 
   gcp_volume_size:
     description:
-    - GCP volume size.
+      - GCP volume size.
     type: int
 
   gcp_volume_size_unit:
     description:
-    - GCP volume size unit.
+      - GCP volume size unit.
     choices: ['GB', 'TB']
     type: str
 
   gcp_volume_type:
     description:
-    - GCP volume type.
+      - GCP volume type.
     choices: ['pd-balanced', 'pd-standard', 'pd-ssd']
     type: str
 
   instance_type:
     description:
-    - The type of instance to use, which depends on the license type you choose.
-    - Explore ['custom-4-16384'].
-    - Standard ['n1-standard-8'].
-    - Premium ['n1-standard-32'].
-    - BYOL all instance types defined for PayGo.
-    - For more supported instance types, refer to Cloud Volumes ONTAP Release Notes.
+      - The type of instance to use, which depends on the license type you choose.
+      - Explore ['custom-4-16384'].
+      - Standard ['n1-standard-8'].
+      - Premium ['n1-standard-32'].
+      - BYOL all instance types defined for PayGo.
+      - For more supported instance types, refer to Cloud Volumes ONTAP Release Notes.
     default: 'n1-standard-8'
     type: str
 
   is_ha:
     description:
-    - Indicate whether the working environment is an HA pair or not.
+      - Indicate whether the working environment is an HA pair or not.
     type: bool
     default: false
 
   license_type:
     description:
-    - The type of license to use.
-    - For single node by Capacity ['capacity-paygo'].
-    - For single node by Node paygo ['gcp-cot-explore-paygo', 'gcp-cot-standard-paygo', 'gcp-cot-premium-paygo'].
-    - For single node by Node byol ['gcp-cot-premium-byol'].
-    - For HA by Capacity ['ha-capacity-paygo'].
-    - For HA by Node paygo ['gcp-ha-cot-explore-paygo', 'gcp-ha-cot-standard-paygo', 'gcp-ha-cot-premium-paygo'].
-    - For HA by Node byol ['gcp-cot-premium-byol'].
+      - The type of license to use.
+      - For single node by Capacity ['capacity-paygo'].
+      - For single node by Node paygo ['gcp-cot-explore-paygo', 'gcp-cot-standard-paygo', 'gcp-cot-premium-paygo'].
+      - For single node by Node byol ['gcp-cot-premium-byol'].
+      - For HA by Capacity ['ha-capacity-paygo'].
+      - For HA by Node paygo ['gcp-ha-cot-explore-paygo', 'gcp-ha-cot-standard-paygo', 'gcp-ha-cot-premium-paygo'].
+      - For HA by Node byol ['gcp-cot-premium-byol'].
     choices: ['gcp-cot-standard-paygo', 'gcp-cot-explore-paygo', 'gcp-cot-premium-paygo', 'gcp-cot-premium-byol', \
      'gcp-ha-cot-standard-paygo', 'gcp-ha-cot-premium-paygo', 'gcp-ha-cot-explore-paygo', 'gcp-ha-cot-premium-byol', \
      'capacity-paygo', 'ha-capacity-paygo']
@@ -136,12 +136,12 @@ options:
 
   provided_license:
     description:
-    - Using a NLF license file for BYOL deployment
+      - Using a NLF license file for BYOL deployment
     type: str
 
   capacity_package_name:
     description:
-    - Capacity package name is required when selecting a capacity based license.
+      - Capacity package name is required when selecting a capacity based license.
     choices: ['Professional', 'Essential', 'Freemium']
     default: 'Essential'
     type: str
@@ -149,215 +149,221 @@ options:
 
   mediator_zone:
     description:
-    - The zone for mediator.
-    - Option for HA pair only.
+      - The zone for mediator.
+      - Option for HA pair only.
     type: str
 
   name:
     description:
-    - The name of the Cloud Manager CVO for GCP to manage.
+      - The name of the Cloud Manager CVO for GCP to manage.
     required: true
     type: str
 
   network_project_id:
     description:
-    - The project id in GCP associated with the Subnet.
-    - If not provided, it is assumed that the Subnet is within the previously specified project id.
+      - The project id in GCP associated with the Subnet.
+      - If not provided, it is assumed that the Subnet is within the previously specified project id.
     type: str
 
   node1_zone:
     description:
-    - Zone for node 1.
-    - Option for HA pair only.
+      - Zone for node 1.
+      - Option for HA pair only.
     type: str
 
   node2_zone:
     description:
-    - Zone for node 2.
-    - Option for HA pair only.
+      - Zone for node 2.
+      - Option for HA pair only.
     type: str
 
   nss_account:
     description:
-    - The NetApp Support Site account ID to use with this Cloud Volumes ONTAP system.
-    - If the license type is BYOL and an NSS account isn't provided, Cloud Manager tries to use the first existing NSS account.
+      - The NetApp Support Site account ID to use with this Cloud Volumes ONTAP system.
+      - If the license type is BYOL and an NSS account isn't provided, Cloud Manager tries to use the first existing NSS account.
     type: str
 
   ontap_version:
     description:
-    - The required ONTAP version. Ignored if 'use_latest_version' is set to true.
+      - The required ONTAP version. Ignored if 'use_latest_version' is set to true.
     type: str
     default: 'latest'
 
   platform_serial_number_node1:
     description:
-    - For HA BYOL, the serial number for the first node.
-    - Option for HA pair only.
+      - For HA BYOL, the serial number for the first node.
+      - Option for HA pair only.
     type: str
 
   platform_serial_number_node2:
     description:
-    - For HA BYOL, the serial number for the second node.
-    - Option for HA pair only.
+      - For HA BYOL, the serial number for the second node.
+      - Option for HA pair only.
     type: str
 
   project_id:
     description:
-    - The ID of the GCP project.
+      - The ID of the GCP project.
     required: true
     type: str
 
   platform_serial_number:
     description:
-    - The serial number for the system. Required when using 'gcp-cot-premium-byol'.
+      - The serial number for the system. Required when using 'gcp-cot-premium-byol'.
     type: str
 
   state:
     description:
-    - Whether the specified Cloud Manager CVO for GCP should exist or not.
+      - Whether the specified Cloud Manager CVO for GCP should exist or not.
     choices: ['present', 'absent']
     default: 'present'
     type: str
 
   subnet_id:
     description:
-    - The name of the subnet for Cloud Volumes ONTAP.
+      - The name of the subnet for Cloud Volumes ONTAP.
     type: str
 
   subnet0_node_and_data_connectivity:
     description:
-    - Subnet path for nic1, required for node and data connectivity.
-    - If using shared VPC, network_project_id must be provided.
-    - Option for HA pair only.
+      - Subnet path for nic1, required for node and data connectivity.
+      - If using shared VPC, network_project_id must be provided.
+      - Option for HA pair only.
     type: str
 
   subnet1_cluster_connectivity:
     description:
-    - Subnet path for nic2, required for cluster connectivity.
-    - Option for HA pair only.
+      - Subnet path for nic2, required for cluster connectivity.
+      - Option for HA pair only.
     type: str
 
   subnet2_ha_connectivity:
     description:
-    - Subnet path for nic3, required for HA connectivity.
-    - Option for HA pair only.
+      - Subnet path for nic3, required for HA connectivity.
+      - Option for HA pair only.
     type: str
 
   subnet3_data_replication:
     description:
-    - Subnet path for nic4, required for HA connectivity.
-    - Option for HA pair only.
+      - Subnet path for nic4, required for HA connectivity.
+      - Option for HA pair only.
     type: str
 
   svm_password:
     description:
-    - The admin password for Cloud Volumes ONTAP.
-    - It will be updated on each run.
+      - The admin password for Cloud Volumes ONTAP.
+      - It will be updated on each run.
     type: str
 
   tier_level:
     description:
-    - The tiering level when 'capacity_tier' is set to 'cloudStorage'.
+      - The tiering level when 'capacity_tier' is set to 'cloudStorage'.
     choices: ['standard', 'nearline', 'coldline']
     default: 'standard'
     type: str
 
   use_latest_version:
     description:
-    - Indicates whether to use the latest available ONTAP version.
+      - Indicates whether to use the latest available ONTAP version.
     type: bool
     default: true
 
   vpc_id:
     required: true
     description:
-    - The name of the VPC.
+      - The name of the VPC.
     type: str
 
   vpc0_firewall_rule_name:
     description:
-    - Firewall rule name for vpc1.
-    - Option for HA pair only.
+      - Firewall rule name for vpc1.
+      - Option for HA pair only.
     type: str
 
   vpc0_node_and_data_connectivity:
     description:
-    - VPC path for nic1, required for node and data connectivity.
-    - If using shared VPC, network_project_id must be provided.
-    - Option for HA pair only.
+      - VPC path for nic1, required for node and data connectivity.
+      - If using shared VPC, network_project_id must be provided.
+      - Option for HA pair only.
     type: str
 
   vpc1_cluster_connectivity:
     description:
-    - VPC path for nic2, required for cluster connectivity.
-    - Option for HA pair only.
+      - VPC path for nic2, required for cluster connectivity.
+      - Option for HA pair only.
     type: str
 
   vpc1_firewall_rule_name:
     description:
-    - Firewall rule name for vpc2.
-    - Option for HA pair only.
+      - Firewall rule name for vpc2.
+      - Option for HA pair only.
     type: str
 
   vpc2_ha_connectivity:
     description:
-    - VPC path for nic3, required for HA connectivity.
-    - Option for HA pair only.
+      - VPC path for nic3, required for HA connectivity.
+      - Option for HA pair only.
     type: str
 
   vpc2_firewall_rule_name:
     description:
-    - Firewall rule name for vpc3.
-    - Option for HA pair only.
+      - Firewall rule name for vpc3.
+      - Option for HA pair only.
     type: str
 
   vpc3_data_replication:
     description:
-    - VPC path for nic4, required for data replication.
-    - Option for HA pair only.
+      - VPC path for nic4, required for data replication.
+      - Option for HA pair only.
     type: str
 
   vpc3_firewall_rule_name:
     description:
-    - Firewall rule name for vpc4.
-    - Option for HA pair only.
+      - Firewall rule name for vpc4.
+      - Option for HA pair only.
     type: str
 
   workspace_id:
     description:
-    - The ID of the Cloud Manager workspace where you want to deploy Cloud Volumes ONTAP.
-    - If not provided, Cloud Manager uses the first workspace.
-    - You can find the ID from the Workspace tab on [https://cloudmanager.netapp.com].
+      - The ID of the Cloud Manager workspace where you want to deploy Cloud Volumes ONTAP.
+      - If not provided, Cloud Manager uses the first workspace.
+      - You can find the ID from the Workspace tab on [https://cloudmanager.netapp.com].
     type: str
 
   writing_speed_state:
     description:
-    - The write speed setting for Cloud Volumes ONTAP ['NORMAL','HIGH'].
-    - Default value is 'NORMAL' for non-HA GCP CVO
-    - This argument is not relevant for HA pairs.
+      - The write speed setting for Cloud Volumes ONTAP ['NORMAL','HIGH'].
+      - Default value is 'NORMAL' for non-HA GCP CVO
+      - This argument is not relevant for HA pairs.
     type: str
 
   zone:
     description:
-    - The zone of the region where the working environment will be created.
+      - The zone of the region where the working environment will be created.
     required: true
     type: str
 
   upgrade_ontap_version:
     description:
-    - Indicates whether to upgrade ONTAP image on the CVO.
-    - If the current version already matches the desired version, no action is taken.
+      - Indicates whether to upgrade ONTAP image on the CVO.
+      - If the current version already matches the desired version, no action is taken.
     type: bool
     default: false
     version_added: 21.13.0
 
   update_svm_password:
     description:
-    - Indicates whether to update svm_password on the CVO.
-    - When set to true, the module is not idempotent, as we cannot read the current password.
+      - Indicates whether to update svm_password on the CVO.
+      - When set to true, the module is not idempotent, as we cannot read the current password.
     type: bool
     default: false
     version_added: 21.13.0
+
+  subnet_path:
+    description:
+      - Subnet path for a single node cluster.
+    type: str
+    version_added: 21.20.0
 
 notes:
 - Support check_mode.
@@ -371,7 +377,8 @@ EXAMPLES = """
     name: ansiblecvogcp
     project_id: default-project
     zone: us-east4-b
-    subnet_id: default
+    subnet_path: projects/<project>/regions/<region>/subnetworks/<subnetwork>
+    subnet_id: projects/<project>/regions/<region>/subnetworks/<subnetwork>
     gcp_volume_type: pd-ssd
     gcp_volume_size: 500
     gcp_volume_size_unit: GB
@@ -512,6 +519,7 @@ class NetAppCloudManagerCVOGCP:
             zone=dict(required=True, type='str'),
             upgrade_ontap_version=dict(required=False, type='bool', default=False),
             update_svm_password=dict(required=False, type='bool', default=False),
+            subnet_path=dict(required=False, type='str'),
         ))
 
         self.module = AnsibleModule(
@@ -607,6 +615,9 @@ class NetAppCloudManagerCVOGCP:
 
         if self.parameters.get('subnet_id'):
             json.update({'subnetId': self.parameters['subnet_id']})
+
+        if self.parameters.get('subnet_path'):
+            json.update({'subnetPath': self.parameters['subnet_path']})
 
         if self.parameters.get('platform_serial_number') is not None:
             json.update({"serialNumber": self.parameters['platform_serial_number']})
