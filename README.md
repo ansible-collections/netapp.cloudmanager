@@ -37,6 +37,11 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.21.0
+
+### New Options
+  - Add `cluster_key_pair_name` option in CVO AWS for SSH authentication key pair method.
+
 ## 21.20.0
 
 ### New Options

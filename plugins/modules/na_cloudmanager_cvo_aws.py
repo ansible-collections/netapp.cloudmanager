@@ -26,7 +26,7 @@ options:
 
   state:
     description:
-    - Whether the specified Cloud Manager CVO for AWS should exist or not.
+      - Whether the specified Cloud Manager CVO for AWS should exist or not.
     choices: ['present', 'absent']
     default: 'present'
     type: str
@@ -34,28 +34,28 @@ options:
   name:
     required: true
     description:
-    - The name of the Cloud Manager CVO for AWS to manage.
+      - The name of the Cloud Manager CVO for AWS to manage.
     type: str
 
   instance_type:
     description:
-    - The instance type to use, which depends on the license type.
-    - Explore ['m5.xlarge'].
-    - Standard ['m5.2xlarge','r5.xlarge'].
-    - Premium ['m5.4xlarge','r5.2xlarge','c4.8xlarge'].
-    - For more supported instance types, refer to Cloud Volumes ONTAP Release Notes.
+      - The instance type to use, which depends on the license type.
+      - Explore ['m5.xlarge'].
+      - Standard ['m5.2xlarge','r5.xlarge'].
+      - Premium ['m5.4xlarge','r5.2xlarge','c4.8xlarge'].
+      - For more supported instance types, refer to Cloud Volumes ONTAP Release Notes.
     type: str
     default: m5.2xlarge
 
   license_type:
     description:
-    - The type of license to use.
-    - For single node by Capacity ['capacity-paygo']
-    - For single node by Node paygo ['cot-explore-paygo', 'cot-standard-paygo', 'cot-premium-paygo'].
-    - For single node by Node boyl ['cot-premium-byol'].
-    - For HA by Capacity ['ha-capacity-paygo']
-    - For HA by Node paygo ['ha-cot-explore-paygo','ha-cot-standard-paygo','ha-cot-premium-paygo'].
-    - For HA by Node boyl ['ha-cot-premium-byol'].
+      - The type of license to use.
+      - For single node by Capacity ['capacity-paygo']
+      - For single node by Node paygo ['cot-explore-paygo', 'cot-standard-paygo', 'cot-premium-paygo'].
+      - For single node by Node boyl ['cot-premium-byol'].
+      - For HA by Capacity ['ha-capacity-paygo']
+      - For HA by Node paygo ['ha-cot-explore-paygo','ha-cot-standard-paygo','ha-cot-premium-paygo'].
+      - For HA by Node boyl ['ha-cot-premium-byol'].
     choices: ['capacity-paygo', 'cot-standard-paygo', 'cot-premium-paygo', 'cot-explore-paygo', 'cot-premium-byol', \
      'ha-cot-standard-paygo', 'ha-cot-premium-paygo', 'ha-cot-premium-byol', 'ha-cot-explore-paygo',  \
      'ha-capacity-paygo']
@@ -64,14 +64,14 @@ options:
 
   provided_license:
     description:
-    - Using a NLF license file for BYOL deployment.
+      - Using a NLF license file for BYOL deployment.
     type: str
 
   capacity_package_name:
     description:
-    - Capacity package name is required when selecting a capacity based license.
-    - Essential only available with Bring Your Own License Capacity-Based.
-    - Professional available as an annual contract from AWS marketplace or Bring Your Own License Capacity-Based.
+      - Capacity package name is required when selecting a capacity based license.
+      - Essential only available with Bring Your Own License Capacity-Based.
+      - Professional available as an annual contract from AWS marketplace or Bring Your Own License Capacity-Based.
     choices: ['Professional', 'Essential', 'Freemium']
     default: 'Essential'
     type: str
@@ -79,31 +79,31 @@ options:
 
   workspace_id:
     description:
-    - The ID of the Cloud Manager workspace where you want to deploy Cloud Volumes ONTAP.
-    - If not provided, Cloud Manager uses the first workspace.
-    - You can find the ID from the Workspace tab on U(https://cloudmanager.netapp.com).
+      - The ID of the Cloud Manager workspace where you want to deploy Cloud Volumes ONTAP.
+      - If not provided, Cloud Manager uses the first workspace.
+      - You can find the ID from the Workspace tab on U(https://cloudmanager.netapp.com).
     type: str
 
   subnet_id:
     description:
-    - The subnet id where the working environment will be created. Required when single node only.
+      - The subnet id where the working environment will be created. Required when single node only.
     type: str
 
   vpc_id:
     description:
-    - The VPC ID where the working environment will be created.
-    - If this argument is not provided, the VPC will be calculated by using the provided subnet ID.
+      - The VPC ID where the working environment will be created.
+      - If this argument is not provided, the VPC will be calculated by using the provided subnet ID.
     type: str
 
   region:
     required: true
     description:
-    - The region where the working environment will be created.
+      - The region where the working environment will be created.
     type: str
 
   data_encryption_type:
     description:
-    - The type of encryption to use for the working environment.
+      - The type of encryption to use for the working environment.
     choices: ['AWS', 'NONE']
     default: 'AWS'
     type: str
@@ -111,155 +111,161 @@ options:
   client_id:
     required: true
     description:
-    - The connector ID of the Cloud Manager Connector.
-    - You can find the ID from the Connector tab on U(https://cloudmanager.netapp.com).
+      - The connector ID of the Cloud Manager Connector.
+      - You can find the ID from the Connector tab on U(https://cloudmanager.netapp.com).
     type: str
 
   ebs_volume_size:
     description:
-    - EBS volume size for the first data aggregate.
-    - For GB, the value can be [100 or 500].
-    - For TB, the value can be [1,2,4,8,16].
+      - EBS volume size for the first data aggregate.
+      - For GB, the value can be [100 or 500].
+      - For TB, the value can be [1,2,4,8,16].
     default: 1
     type: int
 
   ebs_volume_size_unit:
     description:
-    - The unit for ebs volume size.
+      - The unit for ebs volume size.
     choices: ['GB', 'TB']
     default: 'TB'
     type: str
 
   ebs_volume_type:
     description:
-    - The EBS volume type for the first data aggregate.
+      - The EBS volume type for the first data aggregate.
     choices: ['gp3', 'gp2', 'io1', 'sc1', 'st1']
     default: 'gp2'
     type: str
 
   security_group_id:
     description:
-    - The ID of the security group for the working environment. If not provided, Cloud Manager creates the security group.
+      - The ID of the security group for the working environment. If not provided, Cloud Manager creates the security group.
     type: str
 
   instance_profile_name:
     description:
-    - The instance profile name for the working environment. If not provided, Cloud Manager creates the instance profile.
+      - The instance profile name for the working environment. If not provided, Cloud Manager creates the instance profile.
     type: str
 
   svm_password:
     required: true
     description:
-    - The admin password for Cloud Volumes ONTAP.
-    - It will be updated on each run.
+      - The admin password for Cloud Volumes ONTAP.
+      - It will be updated on each run.
     type: str
 
   ontap_version:
     description:
-    - The required ONTAP version. Ignored if 'use_latest_version' is set to true.
+      - The required ONTAP version. Ignored if 'use_latest_version' is set to true.
     type: str
     default: 'latest'
 
   use_latest_version:
     description:
-    - Indicates whether to use the latest available ONTAP version.
+      - Indicates whether to use the latest available ONTAP version.
     type: bool
     default: true
 
   platform_serial_number:
     description:
-    - The serial number for the cluster. This is required when using 'cot-premium-byol'.
+      - The serial number for the cluster. This is required when using 'cot-premium-byol'.
     type: str
 
   tier_level:
     description:
-    - The tiering level when 'capacity_tier' is set to 'S3'.
+      - The tiering level when 'capacity_tier' is set to 'S3'.
     choices: ['normal', 'ia', 'ia-single', 'intelligent']
     default: 'normal'
     type: str
 
+  cluster_key_pair_name:
+    description:
+      - SSH authentication key pair name
+    type: str
+    version_added: 21.21.0
+
   nss_account:
     description:
-    - The NetApp Support Site account ID to use with this Cloud Volumes ONTAP system.
-    - If the license type is BYOL and an NSS account is not provided, Cloud Manager tries to use the first existing NSS account.
+      - The NetApp Support Site account ID to use with this Cloud Volumes ONTAP system.
+      - If the license type is BYOL and an NSS account is not provided, Cloud Manager tries to use the first existing NSS account.
     type: str
 
   writing_speed_state:
     description:
-    - The write speed setting for Cloud Volumes ONTAP ['NORMAL','HIGH'].
-    - This argument is not relevant for HA pairs.
+      - The write speed setting for Cloud Volumes ONTAP ['NORMAL','HIGH'].
+      - This argument is not relevant for HA pairs.
     type: str
 
   iops:
     description:
-    - Provisioned IOPS. Required only when provider_volume_type is 'io1' or 'gp3'.
+      - Provisioned IOPS. Required only when provider_volume_type is 'io1' or 'gp3'.
     type: int
 
   throughput:
     description:
-    - Unit is Mb/s. Valid range 125-1000.
-    - Required only when provider_volume_type is 'gp3'.
+      - Unit is Mb/s. Valid range 125-1000.
+      - Required only when provider_volume_type is 'gp3'.
     type: int
 
   capacity_tier:
     description:
-    - Whether to enable data tiering for the first data aggregate.
+      - Whether to enable data tiering for the first data aggregate.
     choices: ['S3', 'NONE']
     default: 'S3'
     type: str
 
   instance_tenancy:
     description:
-    - The EC2 instance tenancy.
+      - The EC2 instance tenancy.
     choices: ['default', 'dedicated']
     default: 'default'
     type: str
 
   cloud_provider_account:
     description:
-    - The cloud provider credentials id to use when deploying the Cloud Volumes ONTAP system.
-    - You can find the ID in Cloud Manager from the Settings > Credentials page.
-    - If not specified, Cloud Manager uses the instance profile of the Connector.
+      - The cloud provider credentials id to use when deploying the Cloud Volumes ONTAP system.
+      - You can find the ID in Cloud Manager from the Settings > Credentials page.
+      - If not specified, Cloud Manager uses the instance profile of the Connector.
     type: str
 
   backup_volumes_to_cbs:
     description:
-    - Automatically enable back up of all volumes to S3.
+      - Automatically enable back up of all volumes to S3.
     default: false
     type: bool
 
   enable_compliance:
     description:
-    - Enable the Cloud Compliance service on the working environment.
+      - Enable the Cloud Compliance service on the working environment.
     default: false
     type: bool
 
   enable_monitoring:
     description:
-    - Enable the Monitoring service on the working environment.
+      - Enable the Monitoring service on the working environment.
     default: false
     type: bool
 
   optimized_network_utilization:
     description:
-    - Use optimized network utilization.
+      - Use optimized network utilization.
     default: true
     type: bool
 
   kms_key_id:
     description:
-    - Aws Encryption parameters. It is required if using aws encryption. Only one of KMS key id or KMS arn should be specified.
+      - Aws Encryption parameters. It is required if using aws encryption. Only one of KMS key id or KMS arn should be specified.
     type: str
 
   kms_key_arn:
     description:
-    - AWS encryption parameters. It is required if using aws encryption. Only one of KMS key id or KMS arn should be specified.
+      - AWS encryption parameters. It is required if using aws encryption. Only one of KMS key id or KMS arn should be specified.
     type: str
     version_added: 21.10.0
 
   aws_tag:
     description:
-    - Additional tags for the AWS CVO working environment.
+      - Additional tags for the AWS CVO working environment.
     type: list
     elements: dict
     suboptions:
@@ -272,90 +278,90 @@ options:
 
   is_ha:
     description:
-    - Indicate whether the working environment is an HA pair or not.
+      - Indicate whether the working environment is an HA pair or not.
     type: bool
     default: false
 
   platform_serial_number_node1:
     description:
-    - For HA BYOL, the serial number for the first node. This is required when using 'ha-cot-premium-byol'.
+      - For HA BYOL, the serial number for the first node. This is required when using 'ha-cot-premium-byol'.
     type: str
 
   platform_serial_number_node2:
     description:
-    - For HA BYOL, the serial number for the second node. This is required when using 'ha-cot-premium-byol'.
+      - For HA BYOL, the serial number for the second node. This is required when using 'ha-cot-premium-byol'.
     type: str
 
   node1_subnet_id:
     description:
-    - For HA, the subnet ID of the first node.
+      - For HA, the subnet ID of the first node.
     type: str
 
   node2_subnet_id:
     description:
-    - For HA, the subnet ID of the second node.
+      - For HA, the subnet ID of the second node.
     type: str
 
   mediator_subnet_id:
     description:
-    - For HA, the subnet ID of the mediator.
+      - For HA, the subnet ID of the mediator.
     type: str
 
   failover_mode:
     description:
-    - For HA, the failover mode for the HA pair. 'PrivateIP' is for a single availability zone and 'FloatingIP' is for multiple availability zones.
+      - For HA, the failover mode for the HA pair. 'PrivateIP' is for a single availability zone and 'FloatingIP' is for multiple availability zones.
     type: str
     choices: ['PrivateIP', 'FloatingIP']
 
   mediator_assign_public_ip:
     description:
-    - Boolean option to assign public IP.
+      - Boolean option to assign public IP.
     type: bool
     default: true
 
   mediator_key_pair_name:
     description:
-    - For HA, the key pair name for the mediator instance.
+      - For HA, the key pair name for the mediator instance.
     type: str
 
   cluster_floating_ip:
     description:
-    - For HA FloatingIP, the cluster management floating IP address.
+      - For HA FloatingIP, the cluster management floating IP address.
     type: str
 
   data_floating_ip:
     description:
-    - For HA FloatingIP, the data floating IP address.
+      - For HA FloatingIP, the data floating IP address.
     type: str
 
   data_floating_ip2:
     description:
-    - For HA FloatingIP, the data floating IP address.
+      - For HA FloatingIP, the data floating IP address.
     type: str
 
   svm_floating_ip:
     description:
-    - For HA FloatingIP, the SVM management floating IP address.
+      - For HA FloatingIP, the SVM management floating IP address.
     type: str
 
   route_table_ids:
     description:
-    - For HA FloatingIP, the list of route table IDs that will be updated with the floating IPs.
+      - For HA FloatingIP, the list of route table IDs that will be updated with the floating IPs.
     type: list
     elements: str
 
   upgrade_ontap_version:
     description:
-    - Indicates whether to upgrade ONTAP image on the CVO.
-    - If the current version already matches the desired version, no action is taken.
+      - Indicates whether to upgrade ONTAP image on the CVO.
+      - If the current version already matches the desired version, no action is taken.
     type: bool
     default: false
     version_added: 21.13.0
 
   update_svm_password:
     description:
-    - Indicates whether to update svm_password on the CVO.
-    - When set to true, the module is not idempotent, as we cannot read the current password.
+      - Indicates whether to update svm_password on the CVO.
+      - When set to true, the module is not idempotent, as we cannot read the current password.
     type: bool
     default: false
     version_added: 21.13.0
@@ -472,6 +478,7 @@ class NetAppCloudManagerCVOAWS:
             capacity_package_name=dict(required=False, type='str', choices=['Professional', 'Essential', 'Freemium'], default='Essential'),
             provided_license=dict(required=False, type='str'),
             tier_level=dict(required=False, type='str', choices=['normal', 'ia', 'ia-single', 'intelligent'], default='normal'),
+            cluster_key_pair_name=dict(required=False, type='str'),
             nss_account=dict(required=False, type='str'),
             writing_speed_state=dict(required=False, type='str'),
             iops=dict(required=False, type='int'),
@@ -630,6 +637,9 @@ class NetAppCloudManagerCVOAWS:
 
         if self.parameters.get('throughput') is not None:
             json.update({"throughput": self.parameters['throughput']})
+
+        if self.parameters.get('cluster_key_pair_name') is not None:
+            json.update({"clusterKeyPairName": self.parameters['cluster_key_pair_name']})
 
         if self.parameters.get('instance_tenancy') is not None:
             json.update({"instanceTenancy": self.parameters['instance_tenancy']})
