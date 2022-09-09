@@ -36,6 +36,10 @@ This collection follows the [Ansible project's Code of Conduct](https://docs.ans
 https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
+## 21.21.1
+
+### Bug Fixes
+  - Fix the `machine_type` default value in the connector GCP.
 
 ## 21.21.0
 

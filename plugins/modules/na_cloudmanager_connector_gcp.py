@@ -84,7 +84,7 @@ options:
     description:
     - The machine_type for the Connector VM.
     type: str
-    default: n1-standard-4
+    default: n2-standard-4
 
   firewall_tags:
     description:
@@ -224,7 +224,7 @@ class NetAppCloudManagerConnectorGCP(object):
             gcp_service_account_path=dict(required=False, type='str', aliases=['service_account_path']),
             subnet_id=dict(required=False, type='str', default='default'),
             network_project_id=dict(required=False, type='str'),
-            machine_type=dict(required=False, type='str', default='n1-standard-4'),
+            machine_type=dict(required=False, type='str', default='n2-standard-4'),
             firewall_tags=dict(required=False, type='bool', default=True),
             associate_public_ip=dict(required=False, type='bool', default=True),
             proxy_url=dict(required=False, type='str', default=''),
