@@ -36,6 +36,11 @@ This collection follows the [Ansible project's Code of Conduct](https://docs.ans
 https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
+## 21.22.0
+
+### New Options
+- Add `availability_zone` option in CVO Azure on the location configuration.
+
 ## 21.21.1
 
 ### Bug Fixes

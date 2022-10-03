@@ -305,6 +305,11 @@ options:
     default: false
     version_added: 21.13.0
 
+  availability_zone:
+    description:
+    - The availability zone on the location configuration.
+    type: int
+    version_added: 21.22.0
 '''
 
 EXAMPLES = """
@@ -420,6 +425,7 @@ class NetAppCloudManagerCVOAZURE:
             ha_enable_https=dict(required=False, type='bool'),
             upgrade_ontap_version=dict(required=False, type='bool', default=False),
             update_svm_password=dict(required=False, type='bool', default=False),
+            availability_zone=dict(required=False, type='int'),
         ))
 
         self.module = AnsibleModule(
@@ -532,6 +538,9 @@ class NetAppCloudManagerCVOAZURE:
 
         if self.parameters.get('nss_account') is not None:
             json.update({"nssAccount": self.parameters['nss_account']})
+
+        if self.parameters.get('availability_zone') is not None:
+            json.update({"availabilityZone": self.parameters['availability_zone']})
 
         if self.parameters['data_encryption_type'] == "AZURE":
             if self.parameters.get('azure_encryption_parameters') is not None:

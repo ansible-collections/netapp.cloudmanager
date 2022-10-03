@@ -1224,6 +1224,8 @@ class NetAppModule(object):
                 modified.append('cidr')
             if key == 'location' and we['providerProperties']['regionName'] != value:
                 modified.append('location')
+            if key == 'availability_zone' and we['providerProperties']['availabilityZone'] != value:
+                modified.append('availability_zone')
 
         if modified:
             self.changed = True
