@@ -309,7 +309,7 @@ options:
     description:
     - The availability zone on the location configuration.
     type: int
-    version_added: 21.22.0
+    version_added: 21.20.0
 '''
 
 EXAMPLES = """

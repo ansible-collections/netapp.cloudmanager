@@ -182,7 +182,7 @@ options:
     description:
       - SSH authentication key pair name
     type: str
-    version_added: 21.21.0
+    version_added: 21.20.0
 
   nss_account:
     description:

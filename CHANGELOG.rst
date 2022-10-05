@@ -5,6 +5,22 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.20.0
+========
+
+Minor Changes
+-------------
+
+- Add ``availability_zone`` option in CVO Azure on the location configuration.
+- Add ``subnet_path`` option in CVO GCP.
+- na_cloudmanager_cvo_aws - Add new parameter ``cluster_key_pair_name`` to support SSH authentication method key pair.
+- na_cloudmanager_volume - Support AWS FsxN working environment.
+
+Bugfixes
+--------
+
+- na_cloudmanager_connector_gcp - Fix default machine_type value on the GCP connector.
+
 v21.19.0
 ========
 

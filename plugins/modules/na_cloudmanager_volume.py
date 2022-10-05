@@ -186,7 +186,7 @@ options:
         description:
         - The NetApp account ID that the Connector will be associated with. To be used only when using FSx.
         type: str
-        version_added: 21.22.0
+        version_added: 21.20.0
 
     initiators:
         description:

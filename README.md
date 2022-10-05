@@ -36,25 +36,16 @@ This collection follows the [Ansible project's Code of Conduct](https://docs.ans
 https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
-## 21.22.0
-
-### New Options
-- Add `availability_zone` option in CVO Azure on the location configuration.
-
-## 21.21.1
-
-### Bug Fixes
-  - Fix the `machine_type` default value in the connector GCP.
-
-## 21.21.0
-
-### New Options
-  - Add `cluster_key_pair_name` option in CVO AWS for SSH authentication key pair method.
 
 ## 21.20.0
 
 ### New Options
+  - Add `availability_zone` option in CVO Azure on the location configuration.
+  - Add `cluster_key_pair_name` option in CVO AWS for SSH authentication key pair method.
   - Add `subnet_path` option in CVO GCP.
+
+### Bug Fixes
+  - Fix the `machine_type` default value in the connector GCP.
 
 ### Minor Changes
   - na_cloudmanager_volume - Support AWS FsxN working environment
