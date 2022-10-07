@@ -37,6 +37,11 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.20.1
+
+### Bug Fixes
+  - new meta/execution-environment.yml is failing ansible-builder sanitize step.
+
 ## 21.20.0
 
 ### New Options
