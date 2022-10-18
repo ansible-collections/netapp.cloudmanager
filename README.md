@@ -36,6 +36,11 @@ This collection follows the [Ansible project's Code of Conduct](https://docs.ans
 https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
+## 21.21.0
+
+### New Options
+  - Add `availability_zone_node1` and `availability_zone_node2` options in CVO Azure HA on the location configuration.
+  - Add new `storage_type` value Premium_ZRS
 
 ## 21.20.1
 

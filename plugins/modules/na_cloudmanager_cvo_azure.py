@@ -148,7 +148,7 @@ options:
   storage_type:
     description:
     - The type of storage for the first data aggregate.
-    choices: ['Premium_LRS', 'Standard_LRS', 'StandardSSD_LRS']
+    choices: ['Premium_LRS', 'Standard_LRS', 'StandardSSD_LRS', 'Premium_ZRS']
     default: 'Premium_LRS'
     type: str
 
@@ -310,6 +310,18 @@ options:
     - The availability zone on the location configuration.
     type: int
     version_added: 21.20.0
+
+  availability_zone_node1:
+    description:
+    - The node1 availability zone on the location configuration for HA.
+    type: int
+    version_added: 21.21.0
+
+  availability_zone_node2:
+    description:
+    - The node2 availability zone on the location configuration for HA.
+    type: int
+    version_added: 21.21.0
 '''
 
 EXAMPLES = """
@@ -397,7 +409,7 @@ class NetAppCloudManagerCVOAZURE:
             subscription_id=dict(required=True, type='str'),
             data_encryption_type=dict(required=False, type='str', choices=['AZURE', 'NONE'], default='AZURE'),
             azure_encryption_parameters=dict(required=False, type='str', no_log=True),
-            storage_type=dict(required=False, type='str', choices=['Premium_LRS', 'Standard_LRS', 'StandardSSD_LRS'], default='Premium_LRS'),
+            storage_type=dict(required=False, type='str', choices=['Premium_LRS', 'Standard_LRS', 'StandardSSD_LRS', 'Premium_ZRS'], default='Premium_LRS'),
             disk_size=dict(required=False, type='int', default=1),
             disk_size_unit=dict(required=False, type='str', choices=['GB', 'TB'], default='TB'),
             svm_password=dict(required=True, type='str', no_log=True),
@@ -426,6 +438,8 @@ class NetAppCloudManagerCVOAZURE:
             upgrade_ontap_version=dict(required=False, type='bool', default=False),
             update_svm_password=dict(required=False, type='bool', default=False),
             availability_zone=dict(required=False, type='int'),
+            availability_zone_node1=dict(required=False, type='int'),
+            availability_zone_node2=dict(required=False, type='int'),
         ))
 
         self.module = AnsibleModule(
@@ -565,6 +579,12 @@ class NetAppCloudManagerCVOAZURE:
 
             if self.parameters.get('platform_serial_number_node2'):
                 ha_params["platformSerialNumberNode2"] = self.parameters['platform_serial_number_node2']
+
+            if self.parameters.get('availability_zone_node1'):
+                ha_params["availabilityZoneNode1"] = self.parameters['availability_zone_node1']
+
+            if self.parameters.get('availability_zone_node2'):
+                ha_params["availabilityZoneNode2"] = self.parameters['availability_zone_node2']
 
             if self.parameters.get('ha_enable_https') is not None:
                 ha_params['enableHttps'] = self.parameters['ha_enable_https']
