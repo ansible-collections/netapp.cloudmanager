@@ -151,7 +151,7 @@ def test_create_cloudmanager_connector_azure_pass(get_post_api, register_agent_t
 
     get_post_api.return_value = None, None, None
     register_agent_to_service.return_value = 'test', 'test'
-    deploy_azure.return_value = None
+    deploy_azure.return_value = None, None
 
     with pytest.raises(AnsibleExitJson) as exc:
         my_obj.apply()

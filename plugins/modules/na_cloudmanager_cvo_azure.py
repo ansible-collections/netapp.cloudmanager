@@ -380,7 +380,6 @@ import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as ne
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module import NetAppModule
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
 
-IMPORT_EXCEPTION = None
 
 AZURE_License_Types = ['azure-cot-standard-paygo', 'azure-cot-premium-paygo', 'azure-cot-premium-byol', 'azure-cot-explore-paygo',
                        'azure-ha-cot-standard-paygo', 'azure-ha-cot-premium-paygo', 'azure-ha-cot-premium-byol', 'capacity-paygo', 'ha-capacity-paygo']

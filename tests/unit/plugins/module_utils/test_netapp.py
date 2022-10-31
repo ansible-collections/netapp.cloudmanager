@@ -37,13 +37,21 @@ __metaclass__ = type
 # import copy     # for deepcopy
 import json
 import pytest
-import requests.exceptions
+import sys
+try:
+    import requests.exceptions
+    HAS_REQUESTS_EXC = True
+except ImportError:
+    HAS_REQUESTS_EXC = False
 
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
 from ansible_collections.netapp.cloudmanager.tests.unit.compat.mock import patch
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
 import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as netapp_utils
+
+if (not netapp_utils.HAS_REQUESTS or not HAS_REQUESTS_EXC) and sys.version_info < (3, 5):
+    pytestmark = pytest.mark.skip('skipping as missing required imports on 2.6 and 2.7')
 
 
 def set_module_args(args):

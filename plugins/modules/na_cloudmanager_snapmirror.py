@@ -165,6 +165,7 @@ import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as ne
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module import NetAppModule
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
 
+
 PROVIDER_TO_CAPACITY_TIER = {'amazon': 'S3', 'azure': 'Blob', 'gcp': 'cloudStorage'}
 
 

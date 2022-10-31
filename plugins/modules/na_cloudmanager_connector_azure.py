@@ -397,7 +397,15 @@ class NetAppCloudManagerConnectorAzure(object):
         if retries == 0:
             # Taking too long for status to be active
             return self.module.fail_json(msg="Taking too long for OCCM agent to be active or not properly setup")
-        return client_id
+
+        try:
+            compute_client = get_client_from_cli_profile(ComputeManagementClient)
+            vm = compute_client.virtual_machines.get(self.parameters['resource_group'], self.parameters['name'])
+        except CloudError as error:
+            return self.module.fail_json(msg="Error in deploy_azure (get identity): %s" % to_native(error), exception=traceback.format_exc())
+
+        principal_id = vm.identity.principal_id
+        return client_id, principal_id
 
     def register_agent_to_service(self):
         """
@@ -556,9 +564,10 @@ class NetAppCloudManagerConnectorAzure(object):
         :return: None
         """
         client_id = None
+        principal_id = None
         if not self.module.check_mode:
             if self.parameters['state'] == 'present':
-                client_id = self.deploy_azure()
+                client_id, principal_id = self.deploy_azure()
                 self.na_helper.changed = True
             elif self.parameters['state'] == 'absent':
                 get_deploy = self.get_deploy_azure_vm()
@@ -566,7 +575,7 @@ class NetAppCloudManagerConnectorAzure(object):
                     self.delete_azure_occm()
                     self.na_helper.changed = True
 
-        self.module.exit_json(changed=self.na_helper.changed, msg={'client_id': client_id})
+        self.module.exit_json(changed=self.na_helper.changed, msg={'client_id': client_id, 'principal_id': principal_id})
 
 
 def main():

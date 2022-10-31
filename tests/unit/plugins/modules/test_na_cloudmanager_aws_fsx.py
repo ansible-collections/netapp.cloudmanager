@@ -15,12 +15,12 @@ from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
 from ansible_collections.netapp.cloudmanager.tests.unit.compat import unittest
 from ansible_collections.netapp.cloudmanager.tests.unit.compat.mock import patch
-
+import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as netapp_utils
 from ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_aws_fsx \
-    import NetAppCloudManagerAWSFSX as my_module, IMPORT_EXCEPTION
+    import NetAppCloudManagerAWSFSX as my_module
 
-if IMPORT_EXCEPTION is not None and sys.version_info < (3, 5):
-    pytestmark = pytest.mark.skip('skipping as missing required imports on 2.6 and 2.7: %s' % IMPORT_EXCEPTION)
+if not netapp_utils.HAS_REQUESTS and sys.version_info < (3, 5):
+    pytestmark = pytest.mark.skip('skipping as missing required imports on 2.6 and 2.7')
 
 
 def set_module_args(args):

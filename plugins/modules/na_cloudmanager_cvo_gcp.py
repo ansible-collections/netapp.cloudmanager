@@ -451,6 +451,7 @@ import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as ne
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module import NetAppModule
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
 
+
 GCP_LICENSE_TYPES = ["gcp-cot-standard-paygo", "gcp-cot-explore-paygo", "gcp-cot-premium-paygo", "gcp-cot-premium-byol",
                      "gcp-ha-cot-standard-paygo", "gcp-ha-cot-premium-paygo", "gcp-ha-cot-explore-paygo",
                      "gcp-ha-cot-premium-byol", "capacity-paygo", "ha-capacity-paygo"]
