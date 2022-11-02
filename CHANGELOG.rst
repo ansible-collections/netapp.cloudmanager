@@ -5,6 +5,16 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.21.0
+========
+
+Minor Changes
+-------------
+
+- na_cloudmanager_connector_azure - expose connector managed system identity principal_id to perform role assignment
+- na_cloudmanager_cvo_azure - Add new ``storage_type`` value Premium_ZRS
+- na_cloudmanager_cvo_azure - Add parameter ``availability_zone_node1`` and ``availability_zone_node2`` for CVO Azure HA location
+
 v21.20.1
 ========
 

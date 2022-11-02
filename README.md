@@ -36,12 +36,11 @@ This collection follows the [Ansible project's Code of Conduct](https://docs.ans
 https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
-## 21.22.0
+
+## 21.21.0
 
 ### Minor Changes
   - na_cloudmanager_connector_azure - expose connector managed system identity principal_id tp perform role assignment.
-
-## 21.21.0
 
 ### New Options
   - Add `availability_zone_node1` and `availability_zone_node2` options in CVO Azure HA on the location configuration.
