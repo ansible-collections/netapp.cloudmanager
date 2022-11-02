@@ -20,8 +20,8 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Install ansible stable-2.11
-        run: pip install https://github.com/ansible/ansible/archive/stable-2.11.tar.gz --disable-pip-version-check
+      - name: Install ansible stable-2.12
+        run: pip install https://github.com/ansible/ansible/archive/stable-2.12.tar.gz --disable-pip-version-check
 
       - name: Make directory to make ansible-test happy
         run: |
