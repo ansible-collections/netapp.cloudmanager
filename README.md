@@ -37,6 +37,9 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.22.0
+  - Add `svm_name` option in AWS, AZURE and GCP CVO for creation and update.
+
 ## 21.21.0
 
 ### Minor Changes

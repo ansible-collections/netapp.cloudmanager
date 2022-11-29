@@ -154,6 +154,12 @@ options:
       - It will be updated on each run.
     type: str
 
+  svm_name:
+    description:
+      - The name of the SVM.
+    type: str
+    version_added: 21.22.0
+
   ontap_version:
     description:
       - The required ONTAP version. Ignored if 'use_latest_version' is set to true.
@@ -472,6 +478,7 @@ class NetAppCloudManagerCVOAWS:
             ebs_volume_size_unit=dict(required=False, type='str', choices=['GB', 'TB'], default='TB'),
             ebs_volume_type=dict(required=False, type='str', choices=['gp3', 'gp2', 'io1', 'sc1', 'st1'], default='gp2'),
             svm_password=dict(required=True, type='str', no_log=True),
+            svm_name=dict(required=False, type='str'),
             ontap_version=dict(required=False, type='str', default='latest'),
             use_latest_version=dict(required=False, type='bool', default=True),
             platform_serial_number=dict(required=False, type='str'),
@@ -539,7 +546,7 @@ class NetAppCloudManagerCVOAWS:
 
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-        self.changeable_params = ['aws_tag', 'svm_password', 'tier_level', 'ontap_version', 'instance_type', 'license_type', 'writing_speed_state']
+        self.changeable_params = ['aws_tag', 'svm_password', 'svm_name', 'tier_level', 'ontap_version', 'instance_type', 'license_type', 'writing_speed_state']
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = '/occm/api/%s' % ('aws/ha' if self.parameters['is_ha'] else 'vsa')
@@ -656,6 +663,9 @@ class NetAppCloudManagerCVOAWS:
         if self.parameters.get('backup_volumes_to_cbs') is not None:
             json.update({"backupVolumesToCbs": self.parameters['backup_volumes_to_cbs']})
 
+        if self.parameters.get('svm_name') is not None:
+            json.update({"svmName": self.parameters['svm_name']})
+
         if self.parameters['data_encryption_type'] == "AWS":
             if self.parameters.get('kms_key_id') is not None:
                 json.update({"awsEncryptionParameters": {"kmsKeyId": self.parameters['kms_key_id']}})
@@ -739,6 +749,10 @@ class NetAppCloudManagerCVOAWS:
         for item in modify:
             if item == 'svm_password':
                 response, error = self.na_helper.update_svm_password(base_url, self.rest_api, self.headers, self.parameters['svm_password'])
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
+            if item == 'svm_name':
+                response, error = self.na_helper.update_svm_name(base_url, self.rest_api, self.headers, self.parameters['svm_name'])
                 if error is not None:
                     self.module.fail_json(changed=False, msg=error)
             if item == 'aws_tag':

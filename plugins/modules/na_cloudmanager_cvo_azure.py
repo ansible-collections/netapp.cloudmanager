@@ -186,6 +186,12 @@ options:
     - It will be updated on each run.
     type: str
 
+  svm_name:
+    description:
+      - The name of the SVM.
+    type: str
+    version_added: 21.22.0
+
   ontap_version:
     description:
     - The required ONTAP version. Ignored if 'use_latest_version' is set to true.
@@ -412,6 +418,7 @@ class NetAppCloudManagerCVOAZURE:
             disk_size=dict(required=False, type='int', default=1),
             disk_size_unit=dict(required=False, type='str', choices=['GB', 'TB'], default='TB'),
             svm_password=dict(required=True, type='str', no_log=True),
+            svm_name=dict(required=False, type='str'),
             ontap_version=dict(required=False, type='str', default='latest'),
             use_latest_version=dict(required=False, type='bool', default=True),
             tier_level=dict(required=False, type='str', choices=['normal', 'cool'], default='normal'),
@@ -456,7 +463,8 @@ class NetAppCloudManagerCVOAZURE:
 
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-        self.changeable_params = ['svm_password', 'azure_tag', 'tier_level', 'ontap_version', 'instance_type', 'license_type', 'writing_speed_state']
+        self.changeable_params = ['svm_password', 'svm_name', 'azure_tag', 'tier_level', 'ontap_version',
+                                  'instance_type', 'license_type', 'writing_speed_state']
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = '/occm/api/azure/%s' % ('ha' if self.parameters['is_ha'] else 'vsa')
@@ -559,6 +567,9 @@ class NetAppCloudManagerCVOAZURE:
             if self.parameters.get('azure_encryption_parameters') is not None:
                 json.update({"azureEncryptionParameters": {"key": self.parameters['azure_encryption_parameters']}})
 
+        if self.parameters.get('svm_name') is not None:
+            json.update({"svmName": self.parameters['svm_name']})
+
         if self.parameters.get('azure_tag') is not None:
             tags = []
             for each_tag in self.parameters['azure_tag']:
@@ -627,6 +638,10 @@ class NetAppCloudManagerCVOAZURE:
         for item in modify:
             if item == 'svm_password':
                 response, error = self.na_helper.update_svm_password(base_url, self.rest_api, self.headers, self.parameters['svm_password'])
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
+            if item == 'svm_name':
+                response, error = self.na_helper.update_svm_name(base_url, self.rest_api, self.headers, self.parameters['svm_name'])
                 if error is not None:
                     self.module.fail_json(changed=False, msg=error)
             if item == 'azure_tag':

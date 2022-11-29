@@ -255,6 +255,12 @@ options:
       - It will be updated on each run.
     type: str
 
+  svm_name:
+    description:
+      - The name of the SVM.
+    type: str
+    version_added: 21.22.0
+
   tier_level:
     description:
       - The tiering level when 'capacity_tier' is set to 'cloudStorage'.
@@ -501,6 +507,7 @@ class NetAppCloudManagerCVOGCP:
             subnet2_ha_connectivity=dict(required=False, type='str'),
             subnet3_data_replication=dict(required=False, type='str'),
             svm_password=dict(required=False, type='str', no_log=True),
+            svm_name=dict(required=False, type='str'),
             tier_level=dict(required=False, type='str', choices=['standard', 'nearline', 'coldline'],
                             default='standard'),
             use_latest_version=dict(required=False, type='bool', default=True),
@@ -537,7 +544,8 @@ class NetAppCloudManagerCVOGCP:
         )
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-        self.changeable_params = ['svm_password', 'tier_level', 'gcp_labels', 'ontap_version', 'instance_type', 'license_type', 'writing_speed_state']
+        self.changeable_params = ['svm_password', 'svm_name', 'tier_level', 'gcp_labels', 'ontap_version',
+                                  'instance_type', 'license_type', 'writing_speed_state']
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += self.rest_api.environment_data['CLOUD_MANAGER_HOST']
         self.rest_api.api_root_path = '/occm/api/gcp/%s' % ('ha' if self.parameters['is_ha'] else 'vsa')
@@ -626,6 +634,9 @@ class NetAppCloudManagerCVOGCP:
         if self.parameters.get('capacity_tier') is not None and self.parameters['capacity_tier'] == "cloudStorage":
             json.update({"capacityTier": self.parameters['capacity_tier'],
                          "tierLevel": self.parameters['tier_level']})
+
+        if self.parameters.get('svm_name') is not None:
+            json.update({"svmName": self.parameters['svm_name']})
 
         if self.parameters.get('gcp_labels') is not None:
             labels = []
@@ -760,6 +771,10 @@ class NetAppCloudManagerCVOGCP:
         for item in modify:
             if item == 'svm_password':
                 response, error = self.na_helper.update_svm_password(base_url, self.rest_api, self.headers, self.parameters['svm_password'])
+                if error is not None:
+                    self.module.fail_json(changed=False, msg=error)
+            if item == 'svm_name':
+                response, error = self.na_helper.update_svm_name(base_url, self.rest_api, self.headers, self.parameters['svm_name'])
                 if error is not None:
                     self.module.fail_json(changed=False, msg=error)
             if item == 'gcp_labels':

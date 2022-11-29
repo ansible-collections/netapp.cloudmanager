@@ -1159,6 +1159,9 @@ class NetAppModule(object):
                 if desired['capacity_tier'] == 'cloudStorage':
                     modified.append('tier_level')
 
+        if 'svm_name' in desired and we['svmName'] != desired['svm_name']:
+            modified.append('svm_name')
+
         if 'writing_speed_state' in desired:
             if we['ontapClusterProperties']['writingSpeedState'] != desired['writing_speed_state'].upper():
                 modified.append('writing_speed_state')
@@ -1280,6 +1283,18 @@ class NetAppModule(object):
         if err is not None:
             return False, 'Error: unexpected response on modifying svm_password: %s, %s' % (str(err), str(response))
 
+        return True, None
+
+    def update_svm_name(self, api_root, rest_api, headers, svm_name):
+        # get current svmName
+        we, err = self.get_working_environment_property(rest_api, headers, ['ontapClusterProperties.fields(upgradeVersions)'])
+        if err is not None:
+            return False, 'Error: get_working_environment_property failed: %s' % (str(err))
+        body = {'svmNewName': svm_name,
+                'svmName': we['svmName']}
+        response, err, dummy = rest_api.put(api_root + "svm", body, header=headers)
+        if err is not None:
+            return False, "update svm_name error"
         return True, None
 
     def update_tier_level(self, api_root, rest_api, headers, tier_level):

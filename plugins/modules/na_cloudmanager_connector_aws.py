@@ -231,9 +231,9 @@ class NetAppCloudManagerConnectorAWS(object):
             enable_termination_protection=dict(required=False, type='bool', default=False),
             associate_public_ip_address=dict(required=False, type='bool', default=True),
             account_id=dict(required=False, type='str'),
-            proxy_url=dict(required=False, type='str', default=''),
-            proxy_user_name=dict(required=False, type='str', default=''),
-            proxy_password=dict(required=False, type='str', default='', no_log=True),
+            proxy_url=dict(required=False, type='str'),
+            proxy_user_name=dict(required=False, type='str'),
+            proxy_password=dict(required=False, type='str', no_log=True),
             proxy_certificates=dict(required=False, type='list', elements='str'),
             aws_tag=dict(required=False, type='list', elements='dict', options=dict(
                 tag_key=dict(type='str', no_log=False),
