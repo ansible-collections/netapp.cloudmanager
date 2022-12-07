@@ -5,6 +5,14 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.22.0
+========
+
+Minor Changes
+-------------
+
+- Add ``svm_name`` option in CVO for AWS, AZURE and GCP creation and update.
+
 v21.21.0
 ========
 

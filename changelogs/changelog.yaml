@@ -219,6 +219,13 @@ releases:
     - DEVOPS-5527.yaml
     - DEVOPS-5562.yaml
     release_date: '2022-11-02'
+  21.22.0:
+    changes:
+      minor_changes:
+      - Add ``svm_name`` option in CVO for AWS, AZURE and GCP creation and update.
+    fragments:
+    - DEVOPS-5452.yaml
+    release_date: '2022-12-07'
   21.3.0:
     modules:
     - description: NetApp Cloud Manager Aggregate
