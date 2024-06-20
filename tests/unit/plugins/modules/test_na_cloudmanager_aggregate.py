@@ -14,7 +14,7 @@ import pytest
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
 from ansible_collections.netapp.cloudmanager.tests.unit.compat import unittest
-from ansible_collections.netapp.cloudmanager.tests.unit.compat.mock import patch, Mock
+from ansible_collections.netapp.cloudmanager.tests.unit.compat.mock import patch
 import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as netapp_utils
 from ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_aggregate \
     import NetAppCloudmanagerAggregate as my_module

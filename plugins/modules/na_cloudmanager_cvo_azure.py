@@ -617,7 +617,7 @@ class NetAppCloudManagerCVOAZURE:
                 msg="Error: unexpected response on creating cvo azure: %s, %s" % (str(error), str(response)))
         working_environment_id = response['publicId']
         wait_on_completion_api_url = '/occm/api/audit/activeTask/%s' % str(on_cloud_request_id)
-        err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "CVO", "create", 60, 60)
+        err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "CVO", "create", 60, 90)
 
         if err is not None:
             self.module.fail_json(msg="Error: unexpected response wait_on_completion for creating CVO AZURE: %s" % str(err))

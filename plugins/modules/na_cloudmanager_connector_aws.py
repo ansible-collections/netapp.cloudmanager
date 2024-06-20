@@ -189,7 +189,6 @@ ids:
 import traceback
 import uuid
 import time
-import base64
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils._text import to_native

@@ -47,7 +47,6 @@ except ImportError:
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
 from ansible_collections.netapp.cloudmanager.tests.unit.compat.mock import patch
-from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
 import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as netapp_utils
 
 if (not netapp_utils.HAS_REQUESTS or not HAS_REQUESTS_EXC) and sys.version_info < (3, 5):

@@ -37,6 +37,19 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+<!-- ## 21.24.0
+
+### Minor change
+  - Requires Ansible 2.14 or higher -->
+
+## 21.23.0
+
+### Minor Changes
+  - na_cloudmanager_cvo_azure - increase timeout for creating cvo to 90 mins.
+  - na_cloudmanager_cvo_aws - increase timeout for creating cvo to 90 mins.
+  - na_cloudmanager_cvo_gcp - increase timeout for creating cvo to 90 mins.
+  - Requires Ansible 2.14 or higher
+
 ## 21.22.0
   - Add `svm_name` option in AWS, AZURE and GCP CVO for creation and update.
 

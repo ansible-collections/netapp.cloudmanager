@@ -4,7 +4,6 @@
 ''' unit tests Cloudmanager Ansible module: '''
 
 from __future__ import (absolute_import, division, print_function)
-from logging import exception
 
 __metaclass__ = type
 
