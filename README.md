@@ -37,10 +37,10 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
-<!-- ## 21.24.0
+## 21.24.0
 
-### Minor change
-  - Requires Ansible 2.14 or higher -->
+### Minor Changes
+  - Requires Ansible 2.15 or higher.
 
 ## 21.23.0
 
@@ -272,4 +272,3 @@ https://github.com/ansible-collections/netapp/wiki
   - na_cloudmanager_cvo_aws: Create or delete Cloud Manager CVO for AWS for both single and HA.
   - na_cloudmanager_nss_account: Create or delete a nss account on Cloud Manager.
   - na_cloudmanager_volume: Create, modify or delete a volume on Cloud Volumes ONTAP.
-
