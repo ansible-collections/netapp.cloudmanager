@@ -27,7 +27,6 @@ collections:
 https://docs.ansible.com/ansible/devel/collections/netapp/cloudmanager/
 
 # Need help
-
 Join our [Discord](https://discord.gg/NetApp) and look for our #ansible channel.
 
 * Join the Ansible forum:
