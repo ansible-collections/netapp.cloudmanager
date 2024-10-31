@@ -40,9 +40,10 @@ https://github.com/ansible-collections/netapp/wiki
 ## 21.24.0
 
 ### Minor Changes
-  - Requires Ansible 2.15 or higher.
+  - Requires Ansible 2.16 or higher.
+  - updated pipleine.
 
-## 21.23.0
+## 21.22.1
 
 ### Minor Changes
   - na_cloudmanager_cvo_azure - increase timeout for creating cvo to 90 mins.

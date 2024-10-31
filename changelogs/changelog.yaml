@@ -226,6 +226,15 @@ releases:
     fragments:
     - DEVOPS-5452.yaml
     release_date: '2022-12-07'
+  21.24.0:
+    changes:
+      minor_changes:
+      - na_cloudmanager_cvo_aws - increase timeout for creating cvo to 90 mins.
+      - na_cloudmanager_cvo_azure - increase timeout for creating cvo to 90 mins.
+      - na_cloudmanager_cvo_gcp - increase timeout for creating cvo to 90 mins.
+    fragments:
+    - DEVOPS-5521.yaml
+    release_date: '2024-10-31'
   21.3.0:
     modules:
     - description: NetApp Cloud Manager Aggregate

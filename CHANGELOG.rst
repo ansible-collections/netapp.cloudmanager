@@ -5,6 +5,16 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.24.0
+========
+
+Minor Changes
+-------------
+
+- na_cloudmanager_cvo_aws - increase timeout for creating cvo to 90 mins.
+- na_cloudmanager_cvo_azure - increase timeout for creating cvo to 90 mins.
+- na_cloudmanager_cvo_gcp - increase timeout for creating cvo to 90 mins.
+
 v21.22.0
 ========
 
